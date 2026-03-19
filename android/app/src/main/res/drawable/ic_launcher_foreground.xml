@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,54 C30,54 40,48 54,48 C68,48 78,54 78,54 M54,40 A4,4 0 1,1 54,32 A4,4 0 1,1 54,40 M45,45 L35,35 M63,45 L73,55 M40,60 L30,70 M68,60 L78,50" />
+    <!-- Simplified stylized swimmer path -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,34m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0" /> <!-- Head -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M54,38 L54,60 C54,60 45,75 35,75 M54,60 C54,60 63,75 73,75 M54,45 L35,55 M54,45 L73,35" /> <!-- Body and limbs -->
+</vector>
