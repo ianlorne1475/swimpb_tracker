@@ -322,33 +322,76 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   _loadSwimmers();
                 }
               } else if (value == 'delete_swimmer') {
-                if (_selectedSwimmer == null) return;
+                if (_swimmers.isEmpty) return;
                 
+                Swimmer? swimmerToDelete = _selectedSwimmer ?? _swimmers.first;
                 final confirmed = await showDialog<bool>(
                   context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Delete Swimmer'),
-                    content: Text('Are you sure you want to delete ${_selectedSwimmer!.fullName}? All their times and meets will be lost.'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        style: TextButton.styleFrom(foregroundColor: Colors.red),
-                        child: const Text('Delete'),
-                      ),
-                    ],
+                  builder: (context) => StatefulBuilder(
+                    builder: (context, setDialogState) {
+                      return AlertDialog(
+                        title: const Text('Delete Swimmer'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Select a swimmer to permanently delete:'),
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.lightBorder),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<Swimmer>(
+                                  value: swimmerToDelete,
+                                  isExpanded: true,
+                                  items: _swimmers.map((s) => DropdownMenuItem(
+                                    value: s,
+                                    child: Text(s.fullName),
+                                  )).toList(),
+                                  onChanged: (v) => setDialogState(() => swimmerToDelete = v),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            if (swimmerToDelete != null)
+                              Text(
+                                'Warning: All race data and meets for ${swimmerToDelete!.fullName} will be lost forever.',
+                                style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w500),
+                              ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                          ElevatedButton(
+                            onPressed: swimmerToDelete == null ? null : () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                            ),
+                            child: const Text('Delete'),
+                          ),
+                        ],
+                      );
+                    }
                   ),
                 );
-                if (confirmed == true) {
-                  await _dbHelper.deleteSwimmer(_selectedSwimmer!.id!);
-                  setState(() {
-                    _selectedSwimmer = null;
-                    _meetCount = 0;
-                  });
+                
+                if (confirmed == true && swimmerToDelete != null) {
+                  await _dbHelper.deleteSwimmer(swimmerToDelete!.id!);
+                  if (_selectedSwimmer?.id == swimmerToDelete!.id) {
+                    setState(() {
+                      _selectedSwimmer = null;
+                      _meetCount = 0;
+                    });
+                  }
                   _loadSwimmers();
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Swimmer deleted.')),
+                      SnackBar(content: Text('Swimmer ${swimmerToDelete!.fullName} deleted.')),
                     );
                   }
                 }

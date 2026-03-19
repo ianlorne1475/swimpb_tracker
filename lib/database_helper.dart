@@ -230,7 +230,7 @@ class DatabaseHelper {
   Future<List<SwimEvent>> getProgression(int swimmerId, int distance, String stroke, String course, {DateTime? sinceDate}) async {
     Database db = await database;
     String query = '''
-      SELECT e.*, m.date, m.course
+      SELECT e.*, m.date, m.course, m.title
       FROM events e
       JOIN meets m ON e.meetId = m.id
       WHERE e.swimmerId = ? AND e.distance = ? AND e.stroke = ? AND m.course = ?

@@ -206,7 +206,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                               getTooltipItems: (touchedSpots) {
                                 return touchedSpots.map((spot) {
                                   final event = events[spot.x.toInt()];
-                                  return LineTooltipItem(
+                                   return LineTooltipItem(
                                     '${event.formattedTime}\n',
                                     TextStyle(
                                       color: isDark ? Colors.white : AppColors.lightTextPrimary,
@@ -214,6 +214,15 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                       fontSize: 14,
                                     ),
                                     children: [
+                                      if (event.meetTitle != null)
+                                        TextSpan(
+                                          text: '${event.meetTitle}\n',
+                                          style: TextStyle(
+                                            color: isDark ? AppColors.primary : AppColors.primary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                       TextSpan(
                                         text: event.formattedDate,
                                         style: TextStyle(
