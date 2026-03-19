@@ -15,7 +15,7 @@ class ResetService {
 
     if (lastReset != today) {
       print('Daily reset triggered: $lastReset -> $today');
-      await _prefs.resetDailyData();
+      // Add any specific daily reset logic here
       await _prefs.setLastResetDate(today);
     }
   }
@@ -23,7 +23,6 @@ class ResetService {
   // Helper for testing
   Future<void> forceResetForTesting(DateTime simulatedDate) async {
     final date = DateFormat('yyyy-MM-dd').format(simulatedDate);
-    await _prefs.resetDailyData();
     await _prefs.setLastResetDate(date);
   }
 }

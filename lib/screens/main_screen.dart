@@ -19,7 +19,6 @@ import '../services/bulk_import_service.dart';
 import '../services/bulk_export_service.dart';
 import '../services/qualifying_times_service.dart';
 import '../services/theme_service.dart';
-import '../widgets/daily_goal_widget.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -483,9 +482,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   }
                 },
               ),
-            
-            // Daily Goal (Persistent & Daily Reset)
-            const DailyGoalWidget(),
             
             if (_selectedSwimmer == null)
               Expanded(

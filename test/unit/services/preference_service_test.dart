@@ -23,14 +23,4 @@ void main() {
     await prefs.setThemeMode(ThemeMode.light);
     expect(prefs.getThemeMode(), ThemeMode.light);
   });
-
-  test('should persist daily distance', () async {
-    expect(prefs.getDailyDistance(), 0);
-    
-    await prefs.setDailyDistance(1000);
-    expect(prefs.getDailyDistance(), 1000);
-    
-    await prefs.resetDailyData();
-    expect(prefs.getDailyDistance(), 0);
-  });
 }

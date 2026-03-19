@@ -23,34 +23,29 @@ void main() {
     final yesterdayStr = DateFormat('yyyy-MM-dd').format(yesterday);
     
     await prefs.setLastResetDate(yesterdayStr);
-    await prefs.setDailyDistance(1500);
     
-    expect(prefs.getDailyDistance(), 1500);
     expect(prefs.getLastResetDate(), yesterdayStr);
 
     // Act: run reset check
     await resetService.checkAndResetDailyData();
 
-    // Assert: distance should be 0, date should be today
+    // Assert: date should be today
     final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    expect(prefs.getDailyDistance(), 0);
     expect(prefs.getLastResetDate(), todayStr);
   });
 
-  test('should NOT reset daily distance if date is the same', () async {
-    // Setup: today's reset date and some daily distance
+  test('should NOT update reset date if date is the same', () async {
+    // Setup: today's reset date
     final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
     
     await prefs.setLastResetDate(todayStr);
-    await prefs.setDailyDistance(1500);
     
-    expect(prefs.getDailyDistance(), 1500);
+    expect(prefs.getLastResetDate(), todayStr);
 
     // Act: run reset check
     await resetService.checkAndResetDailyData();
 
-    // Assert: distance should still be 1500
-    expect(prefs.getDailyDistance(), 1500);
+    // Assert: date should still be today
     expect(prefs.getLastResetDate(), todayStr);
   });
 }

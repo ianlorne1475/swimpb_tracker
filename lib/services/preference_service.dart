@@ -32,17 +32,4 @@ class PreferenceService {
   Future<void> setLastResetDate(String date) async {
     await _prefs?.setString('last_reset_date', date);
   }
-
-  // Daily Data (Example for reset)
-  int getDailyDistance() {
-    return _prefs?.getInt('daily_distance') ?? 0;
-  }
-
-  Future<void> setDailyDistance(int distance) async {
-    await _prefs?.setInt('daily_distance', distance);
-  }
-
-  Future<void> resetDailyData() async {
-    await _prefs?.setInt('daily_distance', 0);
-  }
 }
