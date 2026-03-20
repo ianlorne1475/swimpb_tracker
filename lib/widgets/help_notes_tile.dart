@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
 import '../theme/app_theme.dart';
 
 class HelpReleaseNotesTile extends StatelessWidget {
@@ -105,7 +109,12 @@ class HelpReleaseNotesTile extends StatelessWidget {
                     _buildBodyText(context, 'The settings menu allows the user to manage the following:'),
                     const SizedBox(height: 12),
                     _buildBulletItem(context, '1', 'Add a new swimmer.'),
-                    _buildBulletItem(context, '2', 'Bulk import swimmer data from either a .xlsx or .csv file. Download sample file here.'),
+                    _buildBulletItem(
+                      context, 
+                      '2', 
+                      'Bulk import swimmer data from either a .xlsx or .csv file. Download sample file here.',
+                      onTap: () => _shareSampleFile(context),
+                    ),
                     _buildBulletItem(context, '3', 'Bulk export swimmer data to either a .xlsx or .csv file.'),
                     _buildBulletItem(context, '4', 'Toggle the app from light mode to dark mode.'),
                     _buildBulletItem(context, '5', 'Delete a swimmer profile and their swim data.'),
@@ -135,6 +144,28 @@ class HelpReleaseNotesTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _shareSampleFile(BuildContext context) async {
+    try {
+      final ByteData data = await rootBundle.load('assets/samples/sample_import.csv');
+      final Uint8List bytes = data.buffer.asUint8List();
+      
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/sample_import.csv');
+      await file.writeAsBytes(bytes);
+      
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'SwimPB Tracker Sample Import File',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sharing sample file: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildSectionTitle(BuildContext context, String title) {
@@ -167,43 +198,69 @@ class HelpReleaseNotesTile extends StatelessWidget {
     );
   }
 
-  Widget _buildBulletItem(BuildContext context, String leading, String text) {
+  Widget _buildBulletItem(BuildContext context, String leading, String text, {VoidCallback? onTap}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 24,
-            height: 24,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              leading,
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  leading,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                height: 1.4,
-                fontSize: 14,
-                color: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
+              const SizedBox(width: 12),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: text.contains('Download sample file here') 
+                            ? text.split('Download sample file here')[0]
+                            : text,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          height: 1.4,
+                          fontSize: 14,
+                          color: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
+                        ),
+                      ),
+                      if (text.contains('Download sample file here'))
+                        TextSpan(
+                          text: 'Download sample file here.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            height: 1.4,
+                            fontSize: 14,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w900,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
