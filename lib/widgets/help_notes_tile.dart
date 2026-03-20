@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import '../theme/app_theme.dart';
 
@@ -126,7 +127,18 @@ class HelpReleaseNotesTile extends StatelessWidget {
                     
                     const SizedBox(height: 24),
                     _buildSectionTitle(context, 'Contact'),
-                    _buildBodyText(context, 'tri_softsg@gmail.com'),
+                    InkWell(
+                      onTap: () => launchUrl(Uri.parse('mailto:tri_softsg@gmail.com')),
+                      child: Text(
+                        'tri_softsg@gmail.com',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.primary,
+                        ),
+                      ),
+                    ),
 
                     const SizedBox(height: 32),
                     const Divider(height: 1),
