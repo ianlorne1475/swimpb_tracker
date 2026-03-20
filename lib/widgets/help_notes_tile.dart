@@ -148,16 +148,16 @@ class HelpReleaseNotesTile extends StatelessWidget {
 
   void _shareSampleFile(BuildContext context) async {
     try {
-      final ByteData data = await rootBundle.load('assets/samples/sample_import.csv');
+      final ByteData data = await rootBundle.load('assets/samples/surname__firstname__yyyymmdd.csv');
       final Uint8List bytes = data.buffer.asUint8List();
       
       final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/sample_import.csv');
+      final file = File('${tempDir.path}/surname_firstname_yyyymmdd.csv');
       await file.writeAsBytes(bytes);
       
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'SwimPB Tracker Sample Import File',
+        text: 'SwimPB Tracker Sample Import Template',
       );
     } catch (e) {
       if (context.mounted) {
