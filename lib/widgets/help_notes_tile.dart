@@ -105,7 +105,7 @@ class HelpReleaseNotesTile extends StatelessWidget {
                     _buildBodyText(context, 'The settings menu allows the user to manage the following:'),
                     const SizedBox(height: 12),
                     _buildBulletItem(context, '1', 'Add a new swimmer.'),
-                    _buildBulletItem(context, '2', 'Bulk import swimmer data from either a .xlsx or .csv file.'),
+                    _buildBulletItem(context, '2', 'Bulk import swimmer data from either a .xlsx or .csv file. Download sample file here.'),
                     _buildBulletItem(context, '3', 'Bulk export swimmer data to either a .xlsx or .csv file.'),
                     _buildBulletItem(context, '4', 'Toggle the app from light mode to dark mode.'),
                     _buildBulletItem(context, '5', 'Delete a swimmer profile and their swim data.'),
@@ -117,7 +117,7 @@ class HelpReleaseNotesTile extends StatelessWidget {
                     
                     const SizedBox(height: 24),
                     _buildSectionTitle(context, 'Contact'),
-                    _buildBodyText(context, 'trisoftsg@gmail.com'),
+                    _buildBodyText(context, 'tri_softsg@gmail.com'),
 
                     const SizedBox(height: 32),
                     const Divider(height: 1),
@@ -126,6 +126,8 @@ class HelpReleaseNotesTile extends StatelessWidget {
                     _buildBodyText(context, 'Copyright (c) 2026 Tri_SoftSG. All Rights Reserved.'),
                     const SizedBox(height: 12),
                     _buildBodyText(context, 'This software and associated documentation files are proprietary to Tri_SoftSG.'),
+                    const SizedBox(height: 12),
+                    _buildBodyText(context, 'Unauthorized copying, modification, or distribution of this software, via any medium, is strictly prohibited.'),
                 ],
               ),
             ),
