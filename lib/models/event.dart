@@ -71,23 +71,32 @@ class SwimEvent {
   }
 
   static int parseTimeToMs(String timeStr) {
-    // Expected formats: "MM:SS.hh" or "SS.hh"
     try {
-      if (timeStr.contains(':')) {
-        final parts = timeStr.split(':');
-        final minutes = int.parse(parts[0]);
-        final secondsParts = parts[1].split('.');
-        final seconds = int.parse(secondsParts[0]);
-        final hundredths = int.parse(secondsParts[1]);
-        return (minutes * 60 * 1000) + (seconds * 1000) + (hundredths * 10);
-      } else {
-        final parts = timeStr.split('.');
-        final seconds = int.parse(parts[0]);
-        final hundredths = int.parse(parts[1]);
-        return (seconds * 1000) + (hundredths * 10);
+      final clean = timeStr.trim().replaceAll(':', '.');
+      final parts = clean.split('.');
+      
+      if (parts.length >= 3) {
+        // Handle MM.SS.hh or HH.MM.SS.hh (unlikely)
+        final m = int.parse(parts[parts.length - 3]);
+        final s = int.parse(parts[parts.length - 2]);
+        final hStr = parts[parts.length - 1];
+        final h = int.parse(hStr.padRight(2, '0').substring(0, 2));
+        return (m * 60000) + (s * 1000) + (h * 10);
+      } else if (parts.length == 2) {
+        // SS.hh
+        final s = int.parse(parts[0]);
+        final hStr = parts[1];
+        // Special case: if hStr is very long, it might be raw milliseconds?
+        if (hStr.length >= 3 && parts[0] == '0' || parts[0].isEmpty) {
+           return int.tryParse(hStr) ?? 0;
+        }
+        final h = int.parse(hStr.padRight(2, '0').substring(0, 2));
+        return (s * 1000) + (h * 10);
+      } else if (parts.length == 1) {
+        return int.tryParse(parts[0]) ?? 0;
       }
+      return 0;
     } catch (e) {
-      print('DEBUG: parseTimeToMs error for "$timeStr": $e');
       return 0;
     }
   }

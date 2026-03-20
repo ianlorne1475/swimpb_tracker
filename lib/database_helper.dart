@@ -124,6 +124,17 @@ class DatabaseHelper {
     return List.generate(maps.length, (i) => Swimmer.fromMap(maps[i]));
   }
 
+  Future<Swimmer?> getSwimmerById(int id) async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'swimmers',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isEmpty) return null;
+    return Swimmer.fromMap(maps.first);
+  }
+
   Future<int> updateSwimmer(Swimmer swimmer) async {
     Database db = await database;
     return await db.update(
@@ -362,26 +373,40 @@ class DatabaseHelper {
 
   Future<void> deleteEventsBySwimmerAndCourse(int swimmerId, String course) async {
     final db = await database;
-    await db.rawDelete('''
-      DELETE FROM events 
-      WHERE swimmerId = ? AND meetId IN (
-        SELECT id FROM meets WHERE course = ?
-      )
-    ''', [swimmerId, course]);
+    if (course == 'All') {
+      await db.delete(
+        'events',
+        where: 'swimmerId = ?',
+        whereArgs: [swimmerId],
+      );
+    } else {
+      await db.rawDelete('''
+        DELETE FROM events 
+        WHERE swimmerId = ? AND meetId IN (
+          SELECT id FROM meets WHERE course = ?
+        )
+      ''', [swimmerId, course]);
+    }
   }
 
-  Future<List<Map<String, dynamic>>> getEventsForExport(int swimmerId, String course) async {
+  Future<List<Map<String, dynamic>>> getEventsForExport(int swimmerId, {String? course}) async {
     Database db = await database;
-    return await db.rawQuery('''
+    String query = '''
       SELECT s.firstName, s.surname, s.dob, s.nationality, s.club,
              m.title as meetTitle, m.date as meetDate, m.course,
              e.distance, e.stroke, e.timeMs
       FROM events e
       JOIN swimmers s ON e.swimmerId = s.id
       JOIN meets m ON e.meetId = m.id
-      WHERE e.swimmerId = ? AND m.course = ?
-      ORDER BY m.date DESC, e.stroke ASC, e.distance ASC
-    ''', [swimmerId, course]);
+      WHERE e.swimmerId = ?
+    ''';
+    List<dynamic> args = [swimmerId];
+    if (course != null) {
+      query += ' AND m.course = ?';
+      args.add(course);
+    }
+    query += ' ORDER BY m.date DESC, e.stroke ASC, e.distance ASC';
+    return await db.rawQuery(query, args);
   }
 
   Future<void> clearAllData() async {

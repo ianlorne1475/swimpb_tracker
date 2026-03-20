@@ -259,13 +259,15 @@ class _SwimmerDialogState extends State<SwimmerDialog> {
                 club: _clubController.text,
               );
               
+              int? finalId;
               if (widget.swimmer == null) {
-                await _dbHelper.insertSwimmer(swimmer);
+                finalId = await _dbHelper.insertSwimmer(swimmer);
               } else {
                 await _dbHelper.updateSwimmer(swimmer);
+                finalId = swimmer.id;
               }
               
-              if (mounted) Navigator.pop(context, true);
+              if (mounted) Navigator.pop(context, finalId);
             } else if (_dob == null) {
                ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Please select Date of Birth')),

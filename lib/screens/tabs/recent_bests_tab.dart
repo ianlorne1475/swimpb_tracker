@@ -22,7 +22,7 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
     if (_stroke == 'Freestyle') {
       return [50, 100, 200, 400, 800, 1500];
     } else if (_stroke == 'IM') {
-      return _course == 'SCM' ? [100, 200, 400] : [200, 400];
+      return _course == 'SCM' ? [100, 200] : [200, 400];
     } else {
       return [50, 100, 200];
     }

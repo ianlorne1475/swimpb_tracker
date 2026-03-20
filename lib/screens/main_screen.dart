@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
+import 'package:screenshot/screenshot.dart';
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import '../database_helper.dart';
+import '../widgets/ocr_review_dialog.dart';
 import '../models/swimmer.dart';
 import 'tabs/pb_tab.dart';
 import 'tabs/recent_bests_tab.dart';
 import 'tabs/progression_tab.dart';
 import 'tabs/meets_tab.dart';
+import '../widgets/help_notes_tile.dart';
 import '../widgets/swimmer_dialog.dart';
 import '../widgets/add_meet_dialog.dart';
 import '../widgets/swimmer_header.dart';
@@ -28,6 +31,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
+  final ScreenshotController _screenshotController = ScreenshotController();
   late TabController _tabController;
   final DatabaseHelper _dbHelper = DatabaseHelper();
   final BulkImportService _importService = BulkImportService();
@@ -98,16 +102,24 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   }
 
 
-  Future<void> _loadSwimmers() async {
+  Future<void> _loadSwimmers({int? targetId}) async {
     final swimmers = await _dbHelper.getSwimmers();
     setState(() {
       _swimmers = swimmers;
-      if (_selectedSwimmer != null) {
-        // Update the selected swimmer object with new data from DB
+      
+      if (targetId != null) {
+        // Explicitly select the requested swimmer (e.g. after adding/editing)
+        try {
+          _selectedSwimmer = _swimmers.firstWhere((s) => s.id == targetId);
+        } catch (e) {
+          _selectedSwimmer = _swimmers.isNotEmpty ? _swimmers.first : null;
+        }
+      } else if (_selectedSwimmer != null) {
+        // Refresh the current selection's data
         try {
           _selectedSwimmer = _swimmers.firstWhere((s) => s.id == _selectedSwimmer!.id);
         } catch (e) {
-          _selectedSwimmer = null;
+          _selectedSwimmer = _swimmers.isNotEmpty ? _swimmers.first : null;
         }
       } else if (_swimmers.isNotEmpty) {
         _selectedSwimmer = _swimmers.first;
@@ -157,6 +169,25 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     );
   }
 
+  void _showAppHelp() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+            maxWidth: 500,
+          ),
+          child: const SingleChildScrollView(
+            child: HelpReleaseNotesTile(),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleBulkImport() async {
     if (_selectedSwimmer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -166,12 +197,38 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     }
     
     try {
-      final course = await _showCourseSelectionDialog();
-      if (course == null) return;
+      Swimmer? selectedImportSwimmer = _selectedSwimmer;
+      final bool? proceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Bulk Import'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Import race results (.csv or .xlsx) and attribute them to the selected swimmer:'),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<Swimmer>(
+                  value: selectedImportSwimmer,
+                  decoration: const InputDecoration(labelText: 'Target Swimmer'),
+                  items: _swimmers.map((s) => DropdownMenuItem(value: s, child: Text(s.fullName))).toList(),
+                  onChanged: (val) => setDialogState(() => selectedImportSwimmer = val),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+              ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Select File')),
+            ],
+          ),
+        ),
+      );
+
+      if (proceed != true) return;
 
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['json', 'csv'],
+        allowedExtensions: ['csv', 'xlsx'],
       );
 
       if (result != null) {
@@ -185,18 +242,24 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           builder: (context) => const Center(child: CircularProgressIndicator()),
         );
 
-        final count = await _importService.importFromFile(
+        int count = await _importService.importFromFile(
           file, 
-          targetSwimmerId: _selectedSwimmer?.id,
-          course: course,
+          targetSwimmerId: selectedImportSwimmer?.id,
+          course: null,
         );
         
         if (!mounted) return;
         Navigator.pop(context); // Close loading dialog
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import completed: $count events added/updated ($course)!')),
-        );
+        await _loadSwimmers();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Import completed: $count events added/updated!'),
+            ),
+          );
+        }
         
         _loadSwimmerData();
         setState(() {}); // Force rebuild tabs
@@ -211,9 +274,10 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     }
   }
 
+
   Future<void> _handleDeleteRaceData() async {
     Swimmer? targetSwimmer = _selectedSwimmer;
-    String targetCourse = 'SCM';
+    String targetCourse = 'All';
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -223,20 +287,13 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('This will delete all race results for the selected swimmer and course type. This cannot be undone.'),
+              const Text('This will delete ALL race results (SCM & LCM) for the selected swimmer. This cannot be undone.'),
               const SizedBox(height: 16),
               DropdownButtonFormField<Swimmer>(
                 value: targetSwimmer,
                 decoration: const InputDecoration(labelText: 'Select Swimmer'),
                 items: _swimmers.map((s) => DropdownMenuItem(value: s, child: Text(s.fullName))).toList(),
                 onChanged: (s) => setDialogState(() => targetSwimmer = s),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: targetCourse,
-                decoration: const InputDecoration(labelText: 'Select Course'),
-                items: ['SCM', 'LCM'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                onChanged: (v) => setDialogState(() => targetCourse = v!),
               ),
             ],
           ),
@@ -257,8 +314,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       _loadSwimmerData();
       setState(() {});
       if (mounted) {
+        final message = targetCourse == 'All' 
+            ? 'Deleted all results for ${targetSwimmer!.fullName}.'
+            : 'Deleted $targetCourse results for ${targetSwimmer!.fullName}.';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Deleted $targetCourse results for ${targetSwimmer!.fullName}.')),
+          SnackBar(content: Text(message)),
         );
       }
     }
@@ -294,12 +354,64 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     }
   }
 
+  Future<Map<String, dynamic>?> _showMeetInfoDialog() async {
+    String title = 'OCR Import Meet';
+    DateTime date = DateTime.now();
+    
+    return await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Meet Information'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                initialValue: title,
+                decoration: const InputDecoration(labelText: 'Meet Title'),
+                onChanged: (val) => title = val,
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Meet Date', style: TextStyle(fontSize: 14)),
+                subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 12)),
+                trailing: const Icon(Icons.calendar_today, size: 20),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: date,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) setDialogState(() => date = picked);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, {'title': title, 'date': date}),
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          appBar: AppBar(
+    return Screenshot(
+      controller: _screenshotController,
+      child: Stack(
+        children: [
+          Scaffold(
+            appBar: AppBar(
         title: const Text('SwimPB Tracker'),
         centerTitle: true,
         actions: [
@@ -318,8 +430,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   context: context,
                   builder: (context) => const SwimmerDialog(),
                 );
-                if (result == true) {
-                  _loadSwimmers();
+                if (result is int) {
+                  _loadSwimmers(targetId: result);
                 }
               } else if (value == 'delete_swimmer') {
                 if (_swimmers.isEmpty) return;
@@ -401,6 +513,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 _handleDeleteRaceData();
               } else if (value == 'toggle_theme') {
                 ThemeService().toggleTheme();
+              } else if (value == 'app_help') {
+                _showAppHelp();
               } else if (value == 'export') {
                 _handleBulkExport();
               }
@@ -449,15 +563,25 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   ],
                 ),
               ),
+              const PopupMenuItem(
+                value: 'app_help',
+                child: Row(
+                  children: [
+                    Icon(Icons.help_outline_rounded, size: 20),
+                    const SizedBox(width: 8),
+                    Text('App Help'),
+                  ],
+                ),
+              ),
               const PopupMenuDivider(),
-              if (_selectedSwimmer != null)
+              if (_swimmers.isNotEmpty)
                 const PopupMenuItem(
                   value: 'delete_swimmer',
                   child: Row(
                     children: [
                       Icon(Icons.person_remove_outlined, size: 20),
                       SizedBox(width: 8),
-                      Text('Delete Current Swimmer'),
+                      Text('Delete Swimmer'),
                     ],
                   ),
                 ),
@@ -510,8 +634,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     context: context,
                     builder: (context) => SwimmerDialog(swimmer: _selectedSwimmer),
                   );
-                  if (result == true) {
-                    _loadSwimmers();
+                  if (result is int) {
+                    _loadSwimmers(targetId: result);
                     _loadSwimmerData();
                   }
                 },
@@ -535,6 +659,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          const HelpReleaseNotesTile(),
+                          const SizedBox(height: 32),
                           Container(
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
@@ -544,7 +670,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                             ),
                             child: Icon(
                               Icons.pool_rounded,
-                              size: 64,
+                              size: 48,
                               color: AppColors.primary.withOpacity(0.5),
                             ),
                           ),
@@ -552,7 +678,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                           Text(
                             'READY TO DIVE IN?',
                             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontSize: 20,
+                              fontSize: 18,
                               letterSpacing: 2,
                             ),
                           ),
@@ -569,8 +695,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                                 context: context,
                                 builder: (context) => const SwimmerDialog(),
                               );
-                              if (result == true) {
-                                _loadSwimmers();
+                              if (result is int) {
+                                _loadSwimmers(targetId: result);
                               }
                             },
                             icon: const Icon(Icons.add_rounded),
@@ -641,29 +767,18 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             
             const SizedBox(height: 16),
             
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  if (_selectedSwimmer != null)
-                    PersonalBestsTab(swimmerId: _selectedSwimmer!.id!)
-                  else
-                    const Center(child: Text('Add a swimmer to see PBs')),
-                  if (_selectedSwimmer != null)
-                    RecentBestsTab(swimmerId: _selectedSwimmer!.id!)
-                  else
-                    const Center(child: Text('Add a swimmer to see results')),
-                  if (_selectedSwimmer != null)
-                    ProgressionTab(swimmerId: _selectedSwimmer!.id!)
-                  else
-                    const Center(child: Text('Add a swimmer to see progression')),
-                  if (_selectedSwimmer != null)
-                    MeetsTab(swimmerId: _selectedSwimmer!.id!)
-                  else
-                    const Center(child: Text('Add a swimmer to see history')),
-                ],
+            if (_selectedSwimmer != null)
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    PersonalBestsTab(swimmerId: _selectedSwimmer!.id!),
+                    RecentBestsTab(swimmerId: _selectedSwimmer!.id!),
+                    ProgressionTab(swimmerId: _selectedSwimmer!.id!),
+                    MeetsTab(swimmerId: _selectedSwimmer!.id!),
+                  ],
+                ),
               ),
-            ),
             ],
           ),
         ),
@@ -707,12 +822,13 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             ),
           ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   void _handleBulkExport() async {
     Swimmer? exportSwimmer = _selectedSwimmer;
-    String exportCourse = 'SCM';
+    String exportFormat = 'csv';
 
     final result = await showDialog<bool>(
       context: context,
@@ -722,6 +838,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const Text('Export all results (SCM & LCM) for the selected swimmer.'),
+              const SizedBox(height: 16),
               DropdownButtonFormField<Swimmer>(
                 value: exportSwimmer,
                 decoration: const InputDecoration(labelText: 'Swimmer'),
@@ -733,13 +851,13 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: exportCourse,
-                decoration: const InputDecoration(labelText: 'Course'),
+                value: exportFormat,
+                decoration: const InputDecoration(labelText: 'Export Format'),
                 items: const [
-                  DropdownMenuItem(value: 'SCM', child: Text('Short Course (25m)')),
-                  DropdownMenuItem(value: 'LCM', child: Text('Long Course (50m)')),
+                  DropdownMenuItem(value: 'csv', child: Text('CSV (Standard)')),
+                  DropdownMenuItem(value: 'xlsx', child: Text('Excel (.xlsx)')),
                 ],
-                onChanged: (val) => setDialogState(() => exportCourse = val!),
+                onChanged: (val) => setDialogState(() => exportFormat = val!),
               ),
             ],
           ),
@@ -750,7 +868,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Next'),
+              child: const Text('Export'),
             ),
           ],
         ),
@@ -762,19 +880,29 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
     try {
       final String dateStr = DateFormat('yyyyMMdd').format(DateTime.now());
-      final String fileName = '${swimmerToExport.surname}_${swimmerToExport.firstName}_$exportCourse\_$dateStr.csv'
+      final String fileName = '${swimmerToExport.surname}_${swimmerToExport.firstName}_$dateStr.$exportFormat'
           .replaceAll(' ', '_')
           .toLowerCase();
 
       final exportService = BulkExportService();
-      final String csvContent = await exportService.getSwimmerCsvContent(swimmerToExport.id!, exportCourse);
-      final Uint8List bytes = Uint8List.fromList(utf8.encode(csvContent));
+      Uint8List bytes;
+
+      if (exportFormat == 'csv') {
+        final String csvContent = await exportService.getSwimmerCsvContent(swimmerToExport.id!);
+        bytes = Uint8List.fromList(utf8.encode(csvContent));
+      } else if (exportFormat == 'xlsx') {
+        final xlsxBytes = await exportService.getSwimmerXlsxBytes(swimmerToExport.id!);
+        if (xlsxBytes == null) throw Exception('Failed to generate Excel file');
+        bytes = xlsxBytes;
+      } else {
+        throw Exception('Unsupported format');
+      }
 
       final String? outputFile = await FilePicker.platform.saveFile(
         dialogTitle: 'Select export location',
         fileName: fileName,
         type: FileType.custom,
-        allowedExtensions: ['csv'],
+        allowedExtensions: [exportFormat],
         bytes: bytes,
       );
 

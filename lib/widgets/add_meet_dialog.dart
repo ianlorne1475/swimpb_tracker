@@ -168,13 +168,19 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
                   child: Column(
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Expanded(
                             flex: 3,
                             child: DropdownButtonHideUnderline(
                               child: DropdownButtonFormField<int>(
                                 value: data.distance,
-                                decoration: const InputDecoration(labelText: 'Dist', isDense: true, contentPadding: EdgeInsets.zero),
+                                decoration: const InputDecoration(
+                                  labelText: 'Dist', 
+                                  isDense: true, 
+                                  contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                  labelStyle: TextStyle(fontSize: 10),
+                                ),
                                 items: [50, 100, 200, 400, 800, 1500].map((d) => DropdownMenuItem(
                                   value: d, 
                                   child: Text('${d}m', style: const TextStyle(fontSize: 12))
@@ -183,13 +189,18 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           Expanded(
                             flex: 5,
                             child: DropdownButtonHideUnderline(
                               child: DropdownButtonFormField<String>(
                                 value: data.stroke,
-                                decoration: const InputDecoration(labelText: 'Stroke', isDense: true, contentPadding: EdgeInsets.zero),
+                                decoration: const InputDecoration(
+                                  labelText: 'Stroke', 
+                                  isDense: true, 
+                                  contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                  labelStyle: TextStyle(fontSize: 10),
+                                ),
                                 items: ['Butterfly', 'Backstroke', 'Breaststroke', 'Freestyle', 'IM'].map((s) => DropdownMenuItem(
                                   value: s, 
                                   child: Text(s, style: const TextStyle(fontSize: 12))
@@ -198,23 +209,28 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           Expanded(
                             flex: 4,
                             child: TextFormField(
                               initialValue: data.timeStr,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                               decoration: const InputDecoration(
                                 labelText: 'Time',
                                 hintText: 'SS.hh',
                                 isDense: true,
-                                contentPadding: EdgeInsets.zero,
+                                contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                labelStyle: TextStyle(fontSize: 10),
                               ),
                               onChanged: (v) => data.timeStr = v,
-                              validator: (v) => v!.isEmpty ? 'Required' : null,
+                              validator: (v) => v!.isEmpty ? 'Req' : null,
                             ),
                           ),
+                          const SizedBox(width: 4),
                           IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            visualDensity: VisualDensity.compact,
                             icon: const Icon(Icons.remove_circle_outline_rounded, color: AppColors.error, size: 20),
                             onPressed: () => setState(() => _entries.removeAt(idx)),
                           ),

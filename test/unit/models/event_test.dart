@@ -40,6 +40,26 @@ void main() {
       expect(SwimEvent.parseTimeToMs('31.20'), 31200);
     });
 
+    test('parseTimeToMs should handle MM.SS.hh format (decimal minutes)', () {
+      expect(SwimEvent.parseTimeToMs('1.02.50'), 62500);
+    });
+
+    test('parseTimeToMs should handle SS:hh format (colon decimal)', () {
+      expect(SwimEvent.parseTimeToMs('31:20'), 31200);
+    });
+
+    test('parseTimeToMs should handle M:SS:hh format (all colons)', () {
+      expect(SwimEvent.parseTimeToMs('1:02:50'), 62500);
+    });
+
+    test('parseTimeToMs should handle single digit hundredths', () {
+      expect(SwimEvent.parseTimeToMs('31.2'), 31200);
+    });
+
+    test('parseTimeToMs should handle raw milliseconds', () {
+      expect(SwimEvent.parseTimeToMs('31200'), 31200);
+    });
+
     test('parseTimeToMs should handle invalid format gracefully', () {
       expect(SwimEvent.parseTimeToMs('invalid'), 0);
     });
