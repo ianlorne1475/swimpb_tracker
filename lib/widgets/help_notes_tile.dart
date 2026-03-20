@@ -123,7 +123,7 @@ class HelpReleaseNotesTile extends StatelessWidget {
 
                     const SizedBox(height: 24),
                     _buildSectionTitle(context, 'Additional Information'),
-                    _buildBodyText(context, 'The app includes the LCM qualification times as used for the SNAG 2026 meet.\n\nAny time in the PB tab that meets the qualification time is annotated with a gold QT badge. All LCM PB times also include the delta between the PB and QT times.\n\nAny times in the Recent tab that meet the qualification time are annotated with a gold QT badge.\n\nThe graphs displayed in the Progress tab for LCM selections include the qualification standard as a green horizontal line on the graph.\n\nFor meet records on the History tab SCM meets are annotated in blue, LCM meets are annotated in green.'),
+                    _buildBodyText(context, 'The app includes the LCM qualification times as used for the SNAG 2026 meet.\n\nAny time in the PB tab that meets the qualification time is annotated with a gold QT badge. All LCM PB times also include the delta between the PB and QT times.\n\nAny times in the Recent tab that meet the qualification time are annotated with a gold QT badge.\n\nThe graphs displayed in the Progress tab for LCM selections include the qualification standard as a green horizontal line on the graph.\n\nFor meet records on the History tab SCM meets are annotated in blue, LCM meets are annotated in green.\n\nSwimmer age is calculated as of the 31st December, this is in line with Singapore Aquatics policy.'),
                     
                     const SizedBox(height: 24),
                     _buildSectionTitle(context, 'Contact'),
