@@ -128,9 +128,9 @@ class HelpReleaseNotesTile extends StatelessWidget {
                     const SizedBox(height: 24),
                     _buildSectionTitle(context, 'Contact'),
                     InkWell(
-                      onTap: () => launchUrl(Uri.parse('mailto:tri_softsg@gmail.com')),
+                      onTap: () => launchUrl(Uri.parse('mailto:trisoftsg@gmail.com')),
                       child: Text(
-                        'tri_softsg@gmail.com',
+                        'trisoftsg@gmail.com',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
