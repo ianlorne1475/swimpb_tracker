@@ -60,7 +60,7 @@ void main() {
       ),
     ));
 
-    await tester.tap(find.byIcon(Icons.edit_rounded));
+    await tester.tap(find.byIcon(Icons.edit));
     expect(editTapped, isTrue);
   });
 }

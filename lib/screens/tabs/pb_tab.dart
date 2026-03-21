@@ -3,6 +3,7 @@ import '../../database_helper.dart';
 import '../../models/event.dart';
 import '../../models/swimmer.dart';
 import '../../models/qualifying_time.dart';
+import '../../models/goal.dart';
 import '../../widgets/pb_card.dart';
 import '../../theme/app_theme.dart';
 
@@ -26,6 +27,7 @@ class PersonalBestsTab extends StatelessWidget {
 
         final allEvents = snapshot.data!['pbs'] as List<SwimEvent>;
         final standards = snapshot.data!['standards'] as List<QualifyingTime>;
+        final goals = snapshot.data!['goals'] as List<SwimmerGoal>;
         
         // Group by (distance, stroke) to align kurses
         final eventTypes = <String>{};
@@ -84,12 +86,22 @@ class PersonalBestsTab extends StatelessWidget {
                   : scmStandards.last)
               : (scmStandards.isNotEmpty ? scmStandards.first : null);
 
+          final scmGoal = goals.cast<SwimmerGoal?>().firstWhere(
+            (g) => g?.distance == dist && g?.stroke == stroke && g?.course == 'SCM', 
+            orElse: () => null,
+          );
+          final lcmGoal = goals.cast<SwimmerGoal?>().firstWhere(
+            (g) => g?.distance == dist && g?.stroke == stroke && g?.course == 'LCM',
+            orElse: () => null,
+          );
+
           Widget scmCard = scmEvent != null 
               ? PBCard(
                   event: scmEvent, 
                   metStandards: scmStandards.where((s) => scmEvent.timeMs <= s.timeMs).toList(), 
                   targetStandard: scmTarget,
                   showQTLabel: true,
+                  goal: scmGoal,
                 )
               : const SizedBox(height: 186);
 
@@ -106,6 +118,7 @@ class PersonalBestsTab extends StatelessWidget {
                   metStandards: lcmStandards.where((s) => lcmEvent.timeMs <= s.timeMs).toList(),
                   targetStandard: lcmTarget,
                   showQTLabel: true,
+                  goal: lcmGoal,
                 )
               : const SizedBox(height: 186);
 
@@ -157,11 +170,17 @@ class PersonalBestsTab extends StatelessWidget {
                                   : eventStandards.last)
                               : null;
                               
+                          final goal = goals.cast<SwimmerGoal?>().firstWhere(
+                            (g) => g?.distance == dist && g?.stroke == stroke && g?.course == course,
+                            orElse: () => null,
+                          );
+                                
                           return PBCard(
                             event: event, 
                             metStandards: eventStandards.where((s) => event.timeMs <= s.timeMs).toList(), 
                             targetStandard: target,
                             showQTLabel: true,
+                            goal: goal,
                           );
                         }
 
@@ -215,10 +234,12 @@ class PersonalBestsTab extends StatelessWidget {
     final swimmer = swimmers.firstWhere((s) => s.id == swimmerId);
     final age = swimmer.calculateAgeAtEndYear();
     final standards = await dbHelper.getStandardsForSwimmer(age, swimmer.gender);
+    final goals = await dbHelper.getGoalsBySwimmer(swimmerId);
     
     return {
       'pbs': pbs,
       'standards': standards,
+      'goals': goals,
     };
   }
 

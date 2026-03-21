@@ -2,21 +2,42 @@ import 'package:flutter/material.dart';
 import '../../database_helper.dart';
 import '../../models/event.dart';
 import '../../models/qualifying_time.dart';
+import '../../models/goal.dart';
 import '../../widgets/pb_card.dart';
 import '../../theme/app_theme.dart';
 
 class RecentBestsTab extends StatefulWidget {
   final int swimmerId;
-  const RecentBestsTab({super.key, required this.swimmerId});
+  final int initialDistance;
+  final String initialStroke;
+  final String initialCourse;
+  final Function(int, String, String) onSelectionChanged;
+
+  const RecentBestsTab({
+    super.key, 
+    required this.swimmerId,
+    required this.initialDistance,
+    required this.initialStroke,
+    required this.initialCourse,
+    required this.onSelectionChanged,
+  });
 
   @override
   State<RecentBestsTab> createState() => _RecentBestsTabState();
 }
 
 class _RecentBestsTabState extends State<RecentBestsTab> {
-  int _distance = 50;
-  String _stroke = 'Butterfly';
-  String _course = 'LCM';
+  late int _distance;
+  late String _stroke;
+  late String _course;
+
+  @override
+  void initState() {
+    super.initState();
+    _distance = widget.initialDistance;
+    _stroke = widget.initialStroke;
+    _course = widget.initialCourse;
+  }
 
   List<int> _getValidDistances() {
     if (_stroke == 'Freestyle') {
@@ -56,7 +77,10 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
               _buildDropdown<int>(
                 value: _distance,
                 items: _getValidDistances().map((d) => DropdownMenuItem(value: d, child: Text('${d}m'))).toList(),
-                onChanged: (v) => setState(() => _distance = v!),
+                onChanged: (v) => setState(() {
+                  _distance = v!;
+                  widget.onSelectionChanged(_distance, _stroke, _course);
+                }),
               ),
               _buildDropdown<String>(
                 value: _stroke,
@@ -66,6 +90,7 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
                 onChanged: (v) => setState(() {
                   _stroke = v!;
                   _validateDistance();
+                  widget.onSelectionChanged(_distance, _stroke, _course);
                 }),
               ),
               _buildDropdown<String>(
@@ -74,6 +99,7 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
                 onChanged: (v) => setState(() {
                   _course = v!;
                   _validateDistance();
+                  widget.onSelectionChanged(_distance, _stroke, _course);
                 }),
               ),
             ],
@@ -105,6 +131,7 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
 
               final events = snapshot.data!['events'] as List<SwimEvent>;
               final standards = snapshot.data!['standards'] as List<QualifyingTime>;
+              final goal = snapshot.data!['goal'] as SwimmerGoal?;
               
               return LayoutBuilder(
                 builder: (context, constraints) {
@@ -121,7 +148,7 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
                       ),
                       itemCount: events.length,
                       itemBuilder: (context, index) {
-                        return _buildEventCard(events[index], standards, index);
+                        return _buildEventCard(events[index], standards, index == 0 ? goal : null, index);
                       },
                     );
                   }
@@ -130,7 +157,7 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: events.length,
                     itemBuilder: (context, index) {
-                      return _buildEventCard(events[index], standards, index);
+                      return _buildEventCard(events[index], standards, index == 0 ? goal : null, index);
                     },
                   );
                 },
@@ -142,7 +169,7 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
     );
   }
 
-  Widget _buildEventCard(SwimEvent event, List<QualifyingTime> standards, int index) {
+  Widget _buildEventCard(SwimEvent event, List<QualifyingTime> standards, SwimmerGoal? goal, int index) {
     final eventStandards = standards.where((s) => 
       s.distance == event.distance && 
       s.stroke == event.stroke && 
@@ -163,6 +190,7 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
       targetStandard: target,
       rank: index + 1,
       showQTLabel: true,
+      goal: goal,
     );
   }
 
@@ -195,9 +223,12 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
     final age = swimmer.calculateAgeAtEndYear();
     final standards = await dbHelper.getStandardsForSwimmer(age, swimmer.gender);
 
+    final goal = await dbHelper.getGoalForEvent(widget.swimmerId, _distance, _stroke, _course);
+
     return {
       'events': events,
       'standards': standards,
+      'goal': goal,
     };
   }
 }

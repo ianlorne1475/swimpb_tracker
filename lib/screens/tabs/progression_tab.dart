@@ -4,21 +4,43 @@ import '../../database_helper.dart';
 import '../../models/event.dart';
 import '../../models/swimmer.dart';
 import '../../models/qualifying_time.dart';
+import '../../models/goal.dart';
+import '../../widgets/add_goal_dialog.dart';
 import '../../theme/app_theme.dart';
 
 class ProgressionTab extends StatefulWidget {
   final int swimmerId;
-  const ProgressionTab({super.key, required this.swimmerId});
+  final int initialDistance;
+  final String initialStroke;
+  final String initialCourse;
+  final Function(int, String, String) onSelectionChanged;
+
+  const ProgressionTab({
+    super.key, 
+    required this.swimmerId,
+    required this.initialDistance,
+    required this.initialStroke,
+    required this.initialCourse,
+    required this.onSelectionChanged,
+  });
 
   @override
   State<ProgressionTab> createState() => _ProgressionTabState();
 }
 
 class _ProgressionTabState extends State<ProgressionTab> {
-  int _distance = 50;
-  String _stroke = 'Butterfly';
-  String _course = 'LCM';
+  late int _distance;
+  late String _stroke;
+  late String _course;
   String _timeframe = 'All Time';
+
+  @override
+  void initState() {
+    super.initState();
+    _distance = widget.initialDistance;
+    _stroke = widget.initialStroke;
+    _course = widget.initialCourse;
+  }
 
   List<int> _getValidDistances() {
     if (_stroke == 'Freestyle') {
@@ -72,9 +94,17 @@ class _ProgressionTabState extends State<ProgressionTab> {
       _course
     );
 
+    final goal = await dbHelper.getGoalForEvent(
+      widget.swimmerId, 
+      _distance, 
+      _stroke, 
+      _course
+    );
+
     return {
       'events': events,
       'qt': qt,
+      'goal': goal,
     };
   }
 
@@ -98,7 +128,10 @@ class _ProgressionTabState extends State<ProgressionTab> {
                 _buildDropdown<int>(
                   value: _distance,
                   items: _getValidDistances().map((d) => DropdownMenuItem(value: d, child: Text('${d}m'))).toList(),
-                  onChanged: (v) => setState(() => _distance = v!),
+                  onChanged: (v) => setState(() {
+                    _distance = v!;
+                    widget.onSelectionChanged(_distance, _stroke, _course);
+                  }),
                 ),
                 const SizedBox(width: 16),
                 _buildDropdown<String>(
@@ -109,6 +142,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                   onChanged: (v) => setState(() {
                     _stroke = v!;
                     _validateDistance();
+                    widget.onSelectionChanged(_distance, _stroke, _course);
                   }),
                 ),
                 const SizedBox(width: 16),
@@ -118,6 +152,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                   onChanged: (v) => setState(() {
                     _course = v!;
                     _validateDistance();
+                    widget.onSelectionChanged(_distance, _stroke, _course);
                   }),
                 ),
                 const SizedBox(width: 16),
@@ -127,6 +162,50 @@ class _ProgressionTabState extends State<ProgressionTab> {
                       .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                       .toList(),
                   onChanged: (v) => setState(() => _timeframe = v!),
+                ),
+                const SizedBox(width: 16),
+                TextButton.icon(
+                  onPressed: () async {
+                    final dbHelper = DatabaseHelper();
+                    final swimmers = await dbHelper.getSwimmers();
+                    final swimmer = swimmers.firstWhere((s) => s.id == widget.swimmerId);
+                    final goal = await dbHelper.getGoalForEvent(widget.swimmerId, _distance, _stroke, _course);
+
+                    if (!mounted) return;
+                    final result = await showDialog(
+                      context: context,
+                      builder: (context) => AddGoalDialog(
+                        swimmerId: widget.swimmerId,
+                        distance: _distance,
+                        stroke: _stroke,
+                        course: _course,
+                        existingGoal: goal,
+                      ),
+                    );
+
+                    if (result == 'delete' && goal != null) {
+                      await dbHelper.deleteGoal(goal.id!);
+                      setState(() {});
+                    } else if (result is SwimmerGoal) {
+                      if (goal != null) {
+                        await dbHelper.updateGoal(result);
+                      } else {
+                        await dbHelper.insertGoal(result);
+                      }
+                      setState(() {});
+                    }
+                  },
+                  icon: const Icon(Icons.track_changes, size: 20),
+                  label: const Text(
+                    'Goal',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: AppColors.primary,
+                  ),
                 ),
               ],
             ),
@@ -145,6 +224,11 @@ class _ProgressionTabState extends State<ProgressionTab> {
                 
                 final events = snapshot.data?['events'] as List<SwimEvent>?;
                 final qt = snapshot.data?['qt'] as QualifyingTime?;
+                final goal = snapshot.data?['goal'] as SwimmerGoal?;
+                final bool hasQualified = (events != null && qt != null) && events.any((e) => e.timeMs <= qt.timeMs);
+                final Color statusColor = hasQualified ? Colors.green : Colors.red;
+
+                final bool hasMetGoal = (events != null && goal != null) && events.any((e) => e.timeMs <= goal.timeMs);
 
                 if (events == null || events.length < 2) {
                   return Center(
@@ -176,6 +260,11 @@ class _ProgressionTabState extends State<ProgressionTab> {
                 if (qt != null) {
                   if (qt.timeMs < minY) minY = qt.timeMs.toDouble();
                   if (qt.timeMs > maxY) maxY = qt.timeMs.toDouble();
+                }
+
+                if (goal != null) {
+                  if (goal.timeMs < minY) minY = goal.timeMs.toDouble();
+                  if (goal.timeMs > maxY) maxY = goal.timeMs.toDouble();
                 }
 
                 // Add padding
@@ -250,7 +339,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                     alignment: Alignment.topRight,
                                     padding: const EdgeInsets.only(right: 5, bottom: 5),
                                     style: TextStyle(
-                                      color: AppColors.accent,
+                                      color: statusColor,
                                       fontWeight: FontWeight.w800,
                                       fontSize: 10,
                                       letterSpacing: 0.5,
@@ -267,7 +356,39 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                       } else {
                                         formatted = '$seconds.${hundredths.toString().padLeft(2, '0')}';
                                       }
-                                      return 'QUALIFIED: $formatted';
+                                      return '${hasQualified ? 'Qualified' : 'Qualification'}: $formatted';
+                                    },
+                                  ),
+                                ),
+                              if (goal != null)
+                                HorizontalLine(
+                                  y: goal.timeMs.toDouble(),
+                                  color: Colors.blue.withOpacity(0.8),
+                                  strokeWidth: 2,
+                                  dashArray: [4, 4],
+                                  label: HorizontalLineLabel(
+                                    show: true,
+                                    alignment: Alignment.topLeft,
+                                    padding: const EdgeInsets.only(left: 5, bottom: 5),
+                                    style: TextStyle(
+                                      color: hasMetGoal ? Colors.green : Colors.blue,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 10,
+                                      letterSpacing: 0.5,
+                                    ),
+                                    labelResolver: (line) {
+                                      final duration = Duration(milliseconds: goal.timeMs);
+                                      final minutes = duration.inMinutes;
+                                      final seconds = duration.inSeconds % 60;
+                                      final hundredths = (goal.timeMs % 1000) ~/ 10;
+                                      
+                                      String formatted;
+                                      if (minutes > 0) {
+                                        formatted = '$minutes:${seconds.toString().padLeft(2, '0')}.${hundredths.toString().padLeft(2, '0')}';
+                                      } else {
+                                        formatted = '$seconds.${hundredths.toString().padLeft(2, '0')}';
+                                      }
+                                      return 'Goal: $formatted';
                                     },
                                   ),
                                 ),

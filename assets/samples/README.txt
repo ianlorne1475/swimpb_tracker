@@ -16,9 +16,10 @@ The settings menu allows the user to manage the following:
 1. Add a new swimmer.
 2. Bulk import swimmer data from .xlsx, .csv or photo files (OCR). Download sample file here.
 3. Bulk export swimmer data to either a .xlsx or .csv file.
-4. Toggle the app from light mode to dark mode.
-5. Delete a swimmer profile and their swim data.
-6. Delete swim data for a selected swimmer.
+4. Generate PB Certificates and PDF Performance Reports.
+5. Toggle the app from light mode to dark mode.
+6. Delete a swimmer profile and their swim data.
+7. Delete swim data for a selected swimmer.
 
 Additional information:
 
@@ -28,18 +29,24 @@ Any time in the PB tab that meets the qualification time is annotated with a gol
 
 Any times in the Recent tab that meet the qualification time are annotated with a gold QT badge.
 
-The graphs displayed in the Progress tab for LCM selections include the qualification standard as a green horizontal line on the graph.
+The graphs displayed in the Chart tab for LCM selections include the qualification standard as a green horizontal line on the graph.
+
+Additionally, users can set their own custom target "Goals" for any event. This is done by tapping the bulls-eye icon on the Chart tab. Custom goals are displayed as blue dashed lines on the graphs, and as a target time on the PB and Recent tabs.
 
 For meet records on the History tab SCM meets are annotated in blue, LCM meets are annotated in green.
 
+The "Reports" section in the settings menu offers two professional options:
+1. PB Certificate: Creates a shareable "award-style" certificate for any personal best achievement.
+2. Performance Report: Generates a comprehensive PDF summary of the swimmer's career, including key facts, meet counts, and stroke breakdowns.
+
 Swimmer age is calculated as of the 31st December, this is in line with Singapore Aquatics policy.
 
-Contact: tri_softsg@gmail.com
+Contact: trisoftsg@gmail.com
 
 ## License / Copyright
-Copyright (c) 2026 Tri_SoftSG. All Rights Reserved.
+Copyright (c) 2026 trisoftsg. All Rights Reserved.
 
-This software and associated documentation files are proprietary to Tri_SoftSG.
+This software and associated documentation files are proprietary to trisoftsg.
 
 Unauthorized copying, modification, or distribution of this software, via any medium,
 is strictly prohibited.   

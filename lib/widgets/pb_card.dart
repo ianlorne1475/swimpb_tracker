@@ -4,6 +4,7 @@ import '../models/event.dart';
 import '../models/qualifying_time.dart';
 import '../theme/app_theme.dart';
 import 'swim_stroke_icon.dart';
+import '../models/goal.dart';
 
 class PBCard extends StatelessWidget {
   final SwimEvent event;
@@ -11,6 +12,7 @@ class PBCard extends StatelessWidget {
   final QualifyingTime? targetStandard;
   final int? rank;
   final bool showQTLabel;
+  final SwimmerGoal? goal;
 
   const PBCard({
     super.key, 
@@ -19,6 +21,7 @@ class PBCard extends StatelessWidget {
     this.targetStandard,
     this.rank,
     this.showQTLabel = false,
+    this.goal,
   });
 
   @override
@@ -115,6 +118,11 @@ class PBCard extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                  if (goal != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: _buildGoalRow(isDark),
+                    ),
                   const Spacer(),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -267,5 +275,68 @@ class PBCard extends StatelessWidget {
     } else {
       return '$seconds.${hundredths.toString().padLeft(2, '0')}';
     }
+  }
+
+  Widget _buildGoalRow(bool isDark) {
+    final delta = event.timeMs - goal!.timeMs;
+    final isMet = delta <= 0;
+    
+    final duration = Duration(milliseconds: delta.abs());
+    final seconds = duration.inSeconds;
+    final hundredths = (delta.abs() % 1000) ~/ 10;
+    final formattedDelta = '${isMet ? '-' : '+'}$seconds.${hundredths.toString().padLeft(2, '0')}s';
+
+    final color = isMet ? AppColors.accent : Colors.blue;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.track_changes,
+              size: 14,
+              color: color,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'GOAL: ${goal!.formattedTime}',
+              style: TextStyle(
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(isDark ? 0.15 : 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withOpacity(0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.trending_down,
+                size: 12,
+                color: color,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                formattedDelta,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

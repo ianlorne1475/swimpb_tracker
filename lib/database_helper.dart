@@ -6,6 +6,7 @@ import 'models/swimmer.dart';
 import 'models/meet.dart';
 import 'models/event.dart';
 import 'models/qualifying_time.dart';
+import 'models/goal.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -28,7 +29,7 @@ class DatabaseHelper {
     String path = _testPath ?? join(await getDatabasesPath(), 'swimpb_tracker.db');
     return await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -57,6 +58,9 @@ class DatabaseHelper {
       // Unify IM naming (ensuring it runs for all current users)
       await db.execute("UPDATE events SET stroke = 'IM' WHERE stroke = 'Individual Medley'");
       await db.execute("UPDATE qualifying_times SET stroke = 'IM' WHERE stroke = 'Individual Medley'");
+    }
+    if (oldVersion < 8) {
+      await _createGoalsTable(db);
     }
   }
 
@@ -94,6 +98,7 @@ class DatabaseHelper {
       )
     ''');
     await _createQualifyingTimesTable(db);
+    await _createGoalsTable(db);
   }
 
   Future<void> _createQualifyingTimesTable(Database db) async {
@@ -108,6 +113,20 @@ class DatabaseHelper {
         stroke TEXT,
         course TEXT,
         timeMs INTEGER
+      )
+    ''');
+  }
+
+  Future<void> _createGoalsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS swimmer_goals(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        swimmerId INTEGER,
+        distance INTEGER,
+        stroke TEXT,
+        course TEXT,
+        timeMs INTEGER,
+        FOREIGN KEY (swimmerId) REFERENCES swimmers (id) ON DELETE CASCADE
       )
     ''');
   }
@@ -201,21 +220,24 @@ class DatabaseHelper {
 
   Future<List<SwimEvent>> getEventsBySwimmer(int swimmerId) async {
     Database db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'events',
-      where: 'swimmerId = ?',
-      whereArgs: [swimmerId],
-    );
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT e.*, m.title, m.date, m.course
+      FROM events e
+      JOIN meets m ON e.meetId = m.id
+      WHERE e.swimmerId = ?
+      ORDER BY m.date DESC
+    ''', [swimmerId]);
     return List.generate(maps.length, (i) => SwimEvent.fromMap(maps[i]));
   }
 
   Future<List<SwimEvent>> getEventsByMeet(int meetId, int swimmerId) async {
     Database db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'events',
-      where: 'meetId = ? AND swimmerId = ?',
-      whereArgs: [meetId, swimmerId],
-    );
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT e.*, m.title, m.date, m.course
+      FROM events e
+      JOIN meets m ON e.meetId = m.id
+      WHERE e.meetId = ? AND e.swimmerId = ?
+    ''', [meetId, swimmerId]);
     return List.generate(maps.length, (i) => SwimEvent.fromMap(maps[i]));
   }
 
@@ -464,5 +486,57 @@ class DatabaseHelper {
     await db.delete('events');
     await db.delete('meets');
     await db.delete('swimmers');
+    await db.delete('swimmer_goals');
+  }
+
+  // Goals CRUD
+  Future<int> insertGoal(SwimmerGoal goal) async {
+    Database db = await database;
+    return await db.insert(
+      'swimmer_goals', 
+      goal.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<int> updateGoal(SwimmerGoal goal) async {
+    Database db = await database;
+    return await db.update(
+      'swimmer_goals',
+      goal.toMap(),
+      where: 'id = ?',
+      whereArgs: [goal.id],
+    );
+  }
+
+  Future<int> deleteGoal(int id) async {
+    Database db = await database;
+    return await db.delete(
+      'swimmer_goals',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<SwimmerGoal?> getGoalForEvent(int swimmerId, int distance, String stroke, String course) async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'swimmer_goals',
+      where: 'swimmerId = ? AND distance = ? AND stroke = ? AND course = ?',
+      whereArgs: [swimmerId, distance, stroke, course],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return SwimmerGoal.fromMap(maps.first);
+  }
+
+  Future<List<SwimmerGoal>> getGoalsBySwimmer(int swimmerId) async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'swimmer_goals',
+      where: 'swimmerId = ?',
+      whereArgs: [swimmerId],
+    );
+    return List.generate(maps.length, (i) => SwimmerGoal.fromMap(maps[i]));
   }
 }

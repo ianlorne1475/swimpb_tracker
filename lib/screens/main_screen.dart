@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:convert';
+import '../models/event.dart';
+import '../services/report_service.dart';
+import '../widgets/pb_certificate.dart';
+import '../widgets/add_goal_dialog.dart';
 import 'dart:async';
 import 'package:screenshot/screenshot.dart';
 import 'package:intl/intl.dart';
@@ -45,8 +49,13 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   int _refreshCounter = 0;
   
   bool _showTooltip = false;
+  bool _isTooltipInTree = false;
   String _tooltipText = '';
   Timer? _tooltipTimer;
+
+  int _selectedDistance = 50;
+  String _selectedStroke = 'Butterfly';
+  String _selectedCourse = 'LCM';
 
   @override
   void initState() {
@@ -93,9 +102,10 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     _tooltipTimer?.cancel();
     setState(() {
       _tooltipText = _getTooltipText(index);
+      _isTooltipInTree = true;
       _showTooltip = true;
     });
-    _tooltipTimer = Timer(const Duration(seconds: 3), () {
+    _tooltipTimer = Timer(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() => _showTooltip = false);
       }
@@ -564,6 +574,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 ThemeService().toggleTheme();
               } else if (value == 'app_help') {
                 _showAppHelp();
+              } else if (value == 'reports') {
+                _showReportsDialog();
               } else if (value == 'export') {
                 _handleBulkExport();
               }
@@ -609,6 +621,16 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     ),
                     const SizedBox(width: 8),
                     Text(ThemeService().isDarkMode ? 'Light Mode' : 'Dark Mode'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'reports',
+                child: Row(
+                  children: [
+                    Icon(Icons.assessment_outlined, size: 20),
+                    SizedBox(width: 8),
+                    Text('Reports'),
                   ],
                 ),
               ),
@@ -807,7 +829,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     tabs: const [
                       Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.emoji_events_outlined, size: 14), SizedBox(width: 4), Text('PBs')])),
                       Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.access_time, size: 14), SizedBox(width: 4), Text('RECENT')])),
-                      Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.show_chart, size: 14), SizedBox(width: 4), Text('PROG.')])),
+                      Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.show_chart, size: 14), SizedBox(width: 4), Text('CHART')])),
                       Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.description_outlined, size: 14), SizedBox(width: 4), Text('HISTORY')])),
                     ],
                   ),
@@ -828,10 +850,30 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     RecentBestsTab(
                       key: ValueKey('recent_${_selectedSwimmer!.id}_$_refreshCounter'),
                       swimmerId: _selectedSwimmer!.id!,
+                      initialDistance: _selectedDistance,
+                      initialStroke: _selectedStroke,
+                      initialCourse: _selectedCourse,
+                      onSelectionChanged: (d, s, c) {
+                        setState(() {
+                          _selectedDistance = d;
+                          _selectedStroke = s;
+                          _selectedCourse = c;
+                        });
+                      },
                     ),
                     ProgressionTab(
                       key: ValueKey('prog_${_selectedSwimmer!.id}_$_refreshCounter'),
                       swimmerId: _selectedSwimmer!.id!,
+                      initialDistance: _selectedDistance,
+                      initialStroke: _selectedStroke,
+                      initialCourse: _selectedCourse,
+                      onSelectionChanged: (d, s, c) {
+                        setState(() {
+                          _selectedDistance = d;
+                          _selectedStroke = s;
+                          _selectedCourse = c;
+                        });
+                      },
                     ),
                     MeetsTab(
                       key: ValueKey('meets_${_selectedSwimmer!.id}_$_refreshCounter'),
@@ -845,7 +887,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           ),
         ),
       ),
-      if (_showTooltip)
+      if (_isTooltipInTree)
         Positioned(
             bottom: 80,
             left: 24,
@@ -854,13 +896,18 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               color: Colors.transparent,
               child: AnimatedOpacity(
                 opacity: _showTooltip ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 300),
+                duration: const Duration(milliseconds: 1200),
+                onEnd: () {
+                  if (!_showTooltip && mounted) {
+                    setState(() => _isTooltipInTree = false);
+                  }
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark 
+                    color: (Theme.of(context).brightness == Brightness.dark 
                         ? AppColors.border 
-                        : AppColors.lightBorder,
+                        : AppColors.lightBorder).withOpacity(0.8),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
@@ -982,5 +1029,100 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         );
       }
     }
+  }
+
+  void _showReportsDialog() async {
+    if (_selectedSwimmer == null) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Swimmer Reports'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.card_membership, color: AppColors.primary),
+              title: const Text('Share PB Certificate'),
+              subtitle: const Text('Create a shareable award for a PB'),
+              onTap: () {
+                Navigator.pop(context);
+                _showCertificateSelectionDialog();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+              title: const Text('PDF Performance Report'),
+              subtitle: const Text('Full history PDF report'),
+              onTap: () async {
+                Navigator.pop(context);
+                final events = await _dbHelper.getEventsBySwimmer(_selectedSwimmer!.id!);
+                await ReportService.generatePerformanceReport(_selectedSwimmer!, events);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+        ],
+      ),
+    );
+  }
+
+  void _showCertificateSelectionDialog() async {
+    final pbs = await _dbHelper.getPBsBySwimmer(_selectedSwimmer!.id!);
+    if (pbs.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No Personal Bests found.')));
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select PB for Certificate'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: pbs.length,
+            itemBuilder: (context, index) {
+              final pb = pbs[index];
+              return ListTile(
+                title: Text('${pb.distance}m ${pb.stroke} (${pb.course})'),
+                subtitle: Text('Time: ${pb.formattedTime} @ ${pb.meetTitle ?? "Unknown Meet"}'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _generateAndShareCertificate(pb);
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _generateAndShareCertificate(SwimEvent pb) async {
+    final screenshotController = ScreenshotController();
+    
+    // Create the certificate off-screen
+    final certificate = RepaintBoundary(
+      child: PBCertificate(swimmer: _selectedSwimmer!, event: pb),
+    );
+
+    // Wait a bit for it to build
+    await Future.delayed(const Duration(milliseconds: 100));
+    
+    final imageBytes = await screenshotController.captureFromWidget(
+      certificate,
+      delay: const Duration(milliseconds: 50),
+      context: context,
+    );
+
+    await ReportService.shareCertificate(imageBytes, _selectedSwimmer!.fullName);
   }
 }
