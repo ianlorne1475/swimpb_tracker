@@ -106,23 +106,32 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
               final events = snapshot.data!['events'] as List<SwimEvent>;
               final standards = snapshot.data!['standards'] as List<QualifyingTime>;
               
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 8), // horizontal padding handled by PBCard internal margin
-                itemCount: events.length,
-                itemBuilder: (context, index) {
-                  final event = events[index];
-                  final metStandards = standards.where((s) => 
-                    s.distance == event.distance && 
-                    s.stroke == event.stroke && 
-                    s.course == event.course && 
-                    event.timeMs <= s.timeMs
-                  ).toList();
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth > 700;
                   
-                  return PBCard(
-                    event: event, 
-                    metStandards: metStandards,
-                    rank: index + 1,
-                    showQTLabel: true,
+                  if (isWide) {
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 1.8,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      itemCount: events.length,
+                      itemBuilder: (context, index) {
+                        return _buildEventCard(events[index], standards, index);
+                      },
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: events.length,
+                    itemBuilder: (context, index) {
+                      return _buildEventCard(events[index], standards, index);
+                    },
                   );
                 },
               );
@@ -130,6 +139,22 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildEventCard(SwimEvent event, List<QualifyingTime> standards, int index) {
+    final metStandards = standards.where((s) => 
+      s.distance == event.distance && 
+      s.stroke == event.stroke && 
+      s.course == event.course && 
+      event.timeMs <= s.timeMs
+    ).toList();
+    
+    return PBCard(
+      event: event, 
+      metStandards: metStandards,
+      rank: index + 1,
+      showQTLabel: true,
     );
   }
 

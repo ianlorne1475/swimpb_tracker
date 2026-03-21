@@ -33,9 +33,11 @@ class _OcrReviewDialogState extends State<OcrReviewDialog> {
 
     return AlertDialog(
       title: const Text('Review OCR Results'),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: _events.isEmpty
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: _events.isEmpty
             ? const Center(child: Text('No results could be identified in the image.'))
             : ListView.builder(
                 shrinkWrap: true,
@@ -103,6 +105,7 @@ class _OcrReviewDialogState extends State<OcrReviewDialog> {
                   );
                 },
               ),
+        ),
       ),
       actions: [
         TextButton(

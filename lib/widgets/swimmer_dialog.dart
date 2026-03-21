@@ -120,7 +120,11 @@ class _SwimmerDialogState extends State<SwimmerDialog> {
         widget.swimmer == null ? 'ADD NEW SWIMMER' : 'EDIT SWIMMER',
         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
       ),
-      content: SingleChildScrollView(
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
@@ -230,9 +234,11 @@ class _SwimmerDialogState extends State<SwimmerDialog> {
               ),
             ],
           ),
+          ),
         ),
       ),
-      actions: [
+    ),
+    actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text(

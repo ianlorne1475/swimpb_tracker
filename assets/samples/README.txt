@@ -1,4 +1,4 @@
-SwimPB Tracker v0.5 help and release notes
+SwimPB Tracker v0.6 help and release notes
 
 This README file is intended to answer some basic questions related to app content and function.
 
@@ -14,7 +14,7 @@ The top tile displays the swimmers profile information. The app is organised in 
 The settings menu allows the user to manage the following:
 
 1. Add a new swimmer.
-2. Bulk import swimmer data from either a .xlsx or .csv file. Download sample file here.
+2. Bulk import swimmer data from .xlsx, .csv or photo files (OCR). Download sample file here.
 3. Bulk export swimmer data to either a .xlsx or .csv file.
 4. Toggle the app from light mode to dark mode.
 5. Delete a swimmer profile and their swim data.

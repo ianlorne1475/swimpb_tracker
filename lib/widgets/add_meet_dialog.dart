@@ -22,25 +22,12 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
   
   final List<EventEntry> _entries = [EventEntry()];
   final _dbHelper = DatabaseHelper();
-  List<Swimmer> _swimmers = [];
   Swimmer? _selectedSwimmer;
 
   @override
   void initState() {
     super.initState();
-    _loadSwimmers();
-  }
-
-  Future<void> _loadSwimmers() async {
-    final swimmers = await _dbHelper.getSwimmers();
-    setState(() {
-      _swimmers = swimmers;
-      if (widget.initialSwimmer != null) {
-        _selectedSwimmer = _swimmers.cast<Swimmer?>().firstWhere((s) => s?.id == widget.initialSwimmer!.id, orElse: () => _swimmers.isNotEmpty ? _swimmers.first : null);
-      } else if (_swimmers.isNotEmpty) {
-        _selectedSwimmer = _swimmers.first;
-      }
-    });
+    _selectedSwimmer = widget.initialSwimmer;
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -83,39 +70,34 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: isDark ? AppColors.surface : Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+      titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+      actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       title: const Text(
         'ADD SWIM MEET',
         style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
       ),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: Form(
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 550),
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: Form(
           key: _formKey,
           child: ListView(
             shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(vertical: 12),
             children: [
-              if (_swimmers.isNotEmpty) ...[
-                DropdownButtonFormField<Swimmer>(
-                  value: _selectedSwimmer,
-                  decoration: const InputDecoration(
-                    labelText: 'Swimmer',
-                    prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
-                  ),
-                  items: _swimmers.map((s) => DropdownMenuItem(value: s, child: Text(s.fullName))).toList(),
-                  onChanged: (s) => setState(() => _selectedSwimmer = s),
-                  validator: (v) => v == null ? 'Swimmer is required' : null,
-                ),
-                const SizedBox(height: 16),
-              ],
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
                   labelText: 'Meet Title',
                   prefixIcon: Icon(Icons.emoji_events_outlined, size: 20),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 validator: (v) => v!.isEmpty ? 'Meet title is required' : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Row(
                 children: [
                    Expanded(
@@ -125,116 +107,126 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
                       child: InputDecorator(
                         decoration: const InputDecoration(
                           labelText: 'Date',
-                          prefixIcon: Icon(Icons.calendar_today_rounded, size: 20),
+                          prefixIcon: Icon(Icons.calendar_today_rounded, size: 18),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                         ),
                         child: Text(
-                          DateFormat('d MMM yyyy').format(_date),
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                          DateFormat('d MMM yy').format(_date),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: _course,
                       decoration: const InputDecoration(
                         labelText: 'Course',
-                        prefixIcon: Icon(Icons.straighten_rounded, size: 20),
+                        prefixIcon: Icon(Icons.straighten_rounded, size: 18),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       ),
-                      items: ['SCM', 'LCM'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                      items: ['SCM', 'LCM'].map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 12)))).toList(),
                       onChanged: (v) => setState(() => _course = v!),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'EVENTS',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1, color: AppColors.primary),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: const [
+                    SizedBox(width: 52, child: Text('DIST', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1, color: AppColors.primary))),
+                    SizedBox(width: 6),
+                    Expanded(child: Text('STROKE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1, color: AppColors.primary))),
+                    SizedBox(width: 6),
+                    SizedBox(width: 88, child: Text('TIME', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1, color: AppColors.primary))),
+                    SizedBox(width: 28),
+                  ],
+                ),
               ),
-              const SizedBox(height: 8),
               ..._entries.asMap().entries.map((entry) {
                 int idx = entry.key;
                 EventEntry data = entry.value;
+
+                InputDecoration fieldDecoration(String hint) => InputDecoration(
+                  filled: true,
+                  fillColor: isDark ? AppColors.surface.withOpacity(0.5) : Colors.white.withOpacity(0.8),
+                  isDense: true, 
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                  hintText: hint,
+                  hintStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.normal),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.primary, width: 1)),
+                  errorStyle: const TextStyle(height: 0, fontSize: 0),
+                );
+
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.background : AppColors.lightBorder.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isDark ? AppColors.border : AppColors.lightBorder),
+                    color: isDark ? AppColors.background.withOpacity(0.7) : AppColors.lightBorder.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: isDark ? AppColors.border : AppColors.lightBorder.withOpacity(0.5)),
                   ),
-                  child: Column(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButtonFormField<int>(
-                                value: data.distance,
-                                decoration: const InputDecoration(
-                                  labelText: 'Dist', 
-                                  isDense: true, 
-                                  contentPadding: EdgeInsets.symmetric(vertical: 8),
-                                  labelStyle: TextStyle(fontSize: 10),
-                                ),
-                                items: [50, 100, 200, 400, 800, 1500].map((d) => DropdownMenuItem(
-                                  value: d, 
-                                  child: Text('${d}m', style: const TextStyle(fontSize: 12))
-                                )).toList(),
-                                onChanged: (v) => setState(() => data.distance = v!),
-                              ),
-                            ),
+                      SizedBox(
+                        width: 52,
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButtonFormField<int>(
+                            value: data.distance,
+                            decoration: fieldDecoration(''),
+                            icon: const Icon(Icons.arrow_drop_down, size: 14),
+                            items: [50, 100, 200, 400, 800, 1500].map((d) => DropdownMenuItem(
+                              value: d, 
+                              child: Text('${d}m', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))
+                            )).toList(),
+                            onChanged: (v) => setState(() => data.distance = v!),
                           ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            flex: 5,
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButtonFormField<String>(
-                                value: data.stroke,
-                                decoration: const InputDecoration(
-                                  labelText: 'Stroke', 
-                                  isDense: true, 
-                                  contentPadding: EdgeInsets.symmetric(vertical: 8),
-                                  labelStyle: TextStyle(fontSize: 10),
-                                ),
-                                items: ['Butterfly', 'Backstroke', 'Breaststroke', 'Freestyle', 'IM'].map((s) => DropdownMenuItem(
-                                  value: s, 
-                                  child: Text(s, style: const TextStyle(fontSize: 12))
-                                )).toList(),
-                                onChanged: (v) => setState(() => data.stroke = v!),
-                              ),
-                            ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButtonFormField<String>(
+                            value: data.stroke,
+                            decoration: fieldDecoration(''),
+                            icon: const Icon(Icons.arrow_drop_down, size: 14),
+                            items: ['Butterfly', 'Backstroke', 'Breaststroke', 'Freestyle', 'IM'].map((s) => DropdownMenuItem(
+                              value: s, 
+                              child: Text(s, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)
+                            )).toList(),
+                            onChanged: (v) => setState(() => data.stroke = v!),
                           ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            flex: 4,
-                            child: TextFormField(
-                              initialValue: data.timeStr,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                              decoration: const InputDecoration(
-                                labelText: 'Time',
-                                hintText: 'SS.hh',
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(vertical: 8),
-                                labelStyle: TextStyle(fontSize: 10),
-                              ),
-                              onChanged: (v) => data.timeStr = v,
-                              validator: (v) => v!.isEmpty ? 'Req' : null,
-                            ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      SizedBox(
+                        width: 88,
+                        child: TextFormField(
+                          initialValue: data.timeStr,
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.right,
+                          decoration: fieldDecoration('M:SS.hh'),
+                          onChanged: (v) => data.timeStr = v,
+                          validator: (v) => v!.isEmpty ? '' : null,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => setState(() => _entries.removeAt(idx)),
+                        child: Container(
+                          padding: const EdgeInsets.all(4.0),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withOpacity(0.1),
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(width: 4),
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            visualDensity: VisualDensity.compact,
-                            icon: const Icon(Icons.remove_circle_outline_rounded, color: AppColors.error, size: 20),
-                            onPressed: () => setState(() => _entries.removeAt(idx)),
-                          ),
-                        ],
+                          child: const Icon(Icons.remove_circle_outline_rounded, color: AppColors.error, size: 18),
+                        ),
                       ),
                     ],
                   ),
@@ -243,21 +235,23 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () => setState(() => _entries.add(EventEntry())),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('ADD ANOTHER EVENT'),
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('ADD EVENT'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: BorderSide(color: AppColors.primary.withOpacity(0.5)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1),
+                  minimumSize: const Size(double.infinity, 36),
                 ),
               ),
             ],
           ),
         ),
       ),
-      actions: [
+    ),
+    actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text(
@@ -265,8 +259,8 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
             style: TextStyle(
               color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
               fontWeight: FontWeight.w800,
-              fontSize: 12,
-              letterSpacing: 1,
+              fontSize: 11,
+              letterSpacing: 0.5,
             ),
           ),
         ),
@@ -300,9 +294,10 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
             foregroundColor: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            minimumSize: const Size(0, 36),
           ),
-          child: const Text('SAVE MEET', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
+          child: const Text('SAVE MEET', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
         ),
       ],
     );

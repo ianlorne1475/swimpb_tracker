@@ -409,6 +409,33 @@ class DatabaseHelper {
     return await db.rawQuery(query, args);
   }
 
+  Future<void> deleteMeetForSwimmer(int meetId, int swimmerId) async {
+    Database db = await database;
+    // 1. Delete events for this swimmer and meet
+    await db.delete(
+      'events',
+      where: 'meetId = ? AND swimmerId = ?',
+      whereArgs: [meetId, swimmerId],
+    );
+
+    // 2. Check if any events remain for this meet
+    final List<Map<String, dynamic>> remainingEvents = await db.query(
+      'events',
+      where: 'meetId = ?',
+      whereArgs: [meetId],
+      limit: 1,
+    );
+
+    // 3. If no events remain, delete the meet record itself
+    if (remainingEvents.isEmpty) {
+      await db.delete(
+        'meets',
+        where: 'id = ?',
+        whereArgs: [meetId],
+      );
+    }
+  }
+
   Future<void> clearAllData() async {
     Database db = await database;
     await db.delete('events');

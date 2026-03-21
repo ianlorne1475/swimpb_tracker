@@ -32,7 +32,7 @@ void main() {
     ));
 
     expect(find.text('Ian Hawkins'), findsOneWidget);
-    expect(find.text('15 Races'), findsOneWidget);
+    expect(find.text('15 RACES'), findsOneWidget);
     expect(find.text('3 SCM'), findsOneWidget);
     expect(find.text('2 LCM'), findsOneWidget);
     expect(find.text('Wimbledon SC  •  MALE'), findsOneWidget);

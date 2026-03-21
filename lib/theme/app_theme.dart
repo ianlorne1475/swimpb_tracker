@@ -49,10 +49,11 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: AppColors.cardBackground,
-        elevation: 0,
+        elevation: 8,
+        shadowColor: Colors.black.withOpacity(0.4),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.border, width: 1),
+          side: BorderSide(color: AppColors.primary.withOpacity(0.1), width: 1),
         ),
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
       ),
@@ -134,8 +135,8 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: AppColors.lightCardBackground,
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.05),
+        elevation: 12,
+        shadowColor: AppColors.primary.withOpacity(0.08),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppColors.lightBorder, width: 1),

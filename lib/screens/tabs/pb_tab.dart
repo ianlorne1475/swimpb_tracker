@@ -108,15 +108,84 @@ class PersonalBestsTab extends StatelessWidget {
           );
         }
         
-        return SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ...eventRows,
-              const SizedBox(height: 32),
-            ],
-          ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 900;
+            
+            if (isWide) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1200),
+                    child: Wrap(
+                      spacing: 20,
+                      runSpacing: 20,
+                      children: sortedTypes.map((type) {
+                        final parts = type.split('-');
+                        final dist = int.parse(parts[0]);
+                        final stroke = parts[1];
+
+                        final scmEvent = allEvents.cast<SwimEvent?>().firstWhere(
+                          (e) => e?.course == 'SCM' && e?.distance == dist && e?.stroke == stroke,
+                          orElse: () => null,
+                        );
+                        
+                        final lcmEvent = allEvents.cast<SwimEvent?>().firstWhere(
+                          (e) => e?.course == 'LCM' && e?.distance == dist && e?.stroke == stroke,
+                          orElse: () => null,
+                        );
+
+                        Widget buildCard(SwimEvent? event, String course) {
+                          if (event == null) return const SizedBox(height: 186);
+                          return PBCard(
+                            event: event, 
+                            metStandards: standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == course && event.timeMs <= s.timeMs).toList(), 
+                            targetStandard: standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == course).isNotEmpty 
+                                ? standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == course).first 
+                                : null
+                          );
+                        }
+
+                        return SizedBox(
+                          width: (constraints.maxWidth - 52) / 2, // 16*2 + 20
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(child: _buildHeader(context, 'SHORT COURSE', AppColors.primary, '25M')),
+                                  Expanded(child: _buildHeader(context, 'LONG COURSE', AppColors.accent, '50M')),
+                                ],
+                              ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: buildCard(scmEvent, 'SCM')),
+                                  Expanded(child: buildCard(lcmEvent, 'LCM')),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ...eventRows,
+                  const SizedBox(height: 32),
+                ],
+              ),
+            );
+          },
         );
       },
     );

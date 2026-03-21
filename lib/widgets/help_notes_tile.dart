@@ -65,7 +65,7 @@ class HelpReleaseNotesTile extends StatelessWidget {
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
-                          'SwimPB Tracker v0.5',
+                          'SwimPB Tracker v0.6',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -113,7 +113,7 @@ class HelpReleaseNotesTile extends StatelessWidget {
                     _buildBulletItem(
                       context, 
                       '2', 
-                      'Bulk import swimmer data from either a .xlsx or .csv file. Download sample file here.',
+                      'Bulk import swimmer data from .xlsx, .csv or photo files (OCR). Download sample file here.',
                       onTap: () => _shareSampleFile(context),
                     ),
                     _buildBulletItem(context, '3', 'Bulk export swimmer data to either a .xlsx or .csv file.'),

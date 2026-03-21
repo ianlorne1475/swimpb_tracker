@@ -42,6 +42,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   int _scmMeetCount = 0;
   int _lcmMeetCount = 0;
   int _resultCount = 0;
+  int _refreshCounter = 0;
   
   bool _showTooltip = false;
   String _tooltipText = '';
@@ -145,6 +146,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         _scmMeetCount = scmCount;
         _lcmMeetCount = lcmCount;
         _resultCount = eventCount;
+        _refreshCounter++;
       });
     }
   }
@@ -206,7 +208,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Import race results (.csv or .xlsx) and attribute them to the selected swimmer:'),
+                const Text('Import race results (.csv, .xlsx, or photos) and attribute them to the selected swimmer:'),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<Swimmer>(
                   value: selectedImportSwimmer,
@@ -228,28 +230,75 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['csv', 'xlsx'],
+        allowedExtensions: ['csv', 'xlsx', 'jpg', 'jpeg', 'png'],
       );
 
       if (result != null) {
         final file = File(result.files.single.path!);
+        final extension = file.path.split('.').last.toLowerCase();
         
         if (!mounted) return;
         
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(child: CircularProgressIndicator()),
-        );
+        int count = 0;
+        if (['jpg', 'jpeg', 'png'].contains(extension)) {
+          // OCR Flow
+          final course = await _showCourseSelectionDialog();
+          if (course == null) return;
+          
+          final meetInfo = await _showMeetInfoDialog();
+          if (meetInfo == null) return;
 
-        int count = await _importService.importFromFile(
-          file, 
-          targetSwimmerId: selectedImportSwimmer?.id,
-          course: null,
-        );
-        
-        if (!mounted) return;
-        Navigator.pop(context); // Close loading dialog
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const Center(child: CircularProgressIndicator()),
+          );
+
+          final results = await _importService.extractResultsFromImage(file);
+          
+          if (!mounted) return;
+          Navigator.pop(context); // Close loading dialog
+
+          final reviewedResults = await showDialog<List<Map<String, dynamic>>>(
+            context: context,
+            builder: (context) => OcrReviewDialog(extractedEvents: results, course: course),
+          );
+
+          if (reviewedResults != null && reviewedResults.isNotEmpty) {
+            if (!mounted) return;
+             showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const Center(child: CircularProgressIndicator()),
+            );
+            count = await _importService.importReviewedResults(
+              selectedImportSwimmer!.id!, 
+              meetInfo['title'], 
+              meetInfo['date'], 
+              course, 
+              reviewedResults
+            );
+            if (!mounted) return;
+            Navigator.pop(context); // Close second loading dialog
+          }
+        } else {
+          // Standard Flow
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const Center(child: CircularProgressIndicator()),
+          );
+
+          count = await _importService.importFromFile(
+            file, 
+            targetSwimmerId: selectedImportSwimmer?.id,
+            course: null,
+          );
+          
+          if (!mounted) return;
+          Navigator.pop(context); // Close loading dialog
+        }
         
         await _loadSwimmers();
 
@@ -642,7 +691,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 onAddMeet: () async {
                   final result = await showDialog(
                     context: context,
-                    builder: (context) => const AddMeetDialog(),
+                    builder: (context) => AddMeetDialog(initialSwimmer: _selectedSwimmer),
                   );
                   if (result == true) {
                     _loadSwimmerData();
@@ -772,10 +821,22 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    PersonalBestsTab(swimmerId: _selectedSwimmer!.id!),
-                    RecentBestsTab(swimmerId: _selectedSwimmer!.id!),
-                    ProgressionTab(swimmerId: _selectedSwimmer!.id!),
-                    MeetsTab(swimmerId: _selectedSwimmer!.id!),
+                    PersonalBestsTab(
+                      key: ValueKey('pb_${_selectedSwimmer!.id}_$_refreshCounter'),
+                      swimmerId: _selectedSwimmer!.id!,
+                    ),
+                    RecentBestsTab(
+                      key: ValueKey('recent_${_selectedSwimmer!.id}_$_refreshCounter'),
+                      swimmerId: _selectedSwimmer!.id!,
+                    ),
+                    ProgressionTab(
+                      key: ValueKey('prog_${_selectedSwimmer!.id}_$_refreshCounter'),
+                      swimmerId: _selectedSwimmer!.id!,
+                    ),
+                    MeetsTab(
+                      key: ValueKey('meets_${_selectedSwimmer!.id}_$_refreshCounter'),
+                      swimmerId: _selectedSwimmer!.id!,
+                    ),
                   ],
                 ),
               ),
