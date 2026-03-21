@@ -17,7 +17,7 @@ class ProgressionTab extends StatefulWidget {
 class _ProgressionTabState extends State<ProgressionTab> {
   int _distance = 50;
   String _stroke = 'Butterfly';
-  String _course = 'SCM';
+  String _course = 'LCM';
   String _timeframe = 'All Time';
 
   List<int> _getValidDistances() {

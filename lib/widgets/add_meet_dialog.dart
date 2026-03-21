@@ -8,7 +8,9 @@ import '../theme/app_theme.dart';
 
 class AddMeetDialog extends StatefulWidget {
   final Swimmer? initialSwimmer;
-  const AddMeetDialog({super.key, this.initialSwimmer});
+  final SwimMeet? meetToEdit;
+
+  const AddMeetDialog({super.key, this.initialSwimmer, this.meetToEdit});
 
   @override
   State<AddMeetDialog> createState() => _AddMeetDialogState();
@@ -28,6 +30,34 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
   void initState() {
     super.initState();
     _selectedSwimmer = widget.initialSwimmer;
+    
+    if (widget.meetToEdit != null) {
+      _titleController.text = widget.meetToEdit!.title;
+      _date = widget.meetToEdit!.date;
+      _course = widget.meetToEdit!.course;
+      
+      // Load existing events
+      _loadExistingEvents();
+    }
+  }
+
+  Future<void> _loadExistingEvents() async {
+    if (widget.meetToEdit?.id != null && _selectedSwimmer?.id != null) {
+      final events = await _dbHelper.getEventsByMeet(widget.meetToEdit!.id!, _selectedSwimmer!.id!);
+      if (mounted) {
+        setState(() {
+          _entries.clear();
+          for (var e in events) {
+            _entries.add(EventEntry()
+              ..distance = e.distance
+              ..stroke = e.stroke
+              ..timeStr = e.formattedTime
+            );
+          }
+          if (_entries.isEmpty) _entries.add(EventEntry());
+        });
+      }
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -74,9 +104,9 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
       titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
       actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      title: const Text(
-        'ADD SWIM MEET',
-        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+      title: Text(
+        widget.meetToEdit != null ? 'EDIT SWIM MEET' : 'ADD SWIM MEET',
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
       ),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 550),
@@ -208,11 +238,10 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
                       SizedBox(
                         width: 88,
                         child: TextFormField(
-                          initialValue: data.timeStr,
+                          controller: data.controller,
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                           textAlign: TextAlign.right,
                           decoration: fieldDecoration('M:SS.hh'),
-                          onChanged: (v) => data.timeStr = v,
                           validator: (v) => v!.isEmpty ? '' : null,
                         ),
                       ),
@@ -267,25 +296,51 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
         ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate() && _selectedSwimmer != null && _entries.isNotEmpty) {
-              final meet = SwimMeet(title: _titleController.text, date: _date, course: _course);
-              final meetId = await _dbHelper.insertMeet(meet);
-              
-              for (var entry in _entries) {
-                final event = SwimEvent(
-                  meetId: meetId,
-                  swimmerId: _selectedSwimmer!.id!,
-                  distance: entry.distance,
-                  stroke: entry.stroke,
-                  course: _course,
-                  timeMs: _parseTimeToMs(entry.timeStr),
-                  date: _date.toIso8601String(),
+              try {
+                final meet = SwimMeet(
+                  id: widget.meetToEdit?.id,
+                  title: _titleController.text, 
+                  date: _date, 
+                  course: _course
                 );
-                await _dbHelper.insertEvent(event);
+                
+                int meetId;
+                if (widget.meetToEdit != null) {
+                  await _dbHelper.updateMeet(meet);
+                  meetId = meet.id!;
+                  await _dbHelper.deleteEventsByMeetAndSwimmer(meetId, _selectedSwimmer!.id!);
+                } else {
+                  meetId = await _dbHelper.insertMeet(meet);
+                }
+                
+                for (var entry in _entries) {
+                  final event = SwimEvent(
+                    meetId: meetId,
+                    swimmerId: _selectedSwimmer!.id!,
+                    distance: entry.distance,
+                    stroke: entry.stroke,
+                    course: _course,
+                    timeMs: _parseTimeToMs(entry.timeStr),
+                    date: _date.toIso8601String(),
+                  );
+                  await _dbHelper.insertEvent(event);
+                }
+                if (mounted) Navigator.pop(context, true);
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error saving meet: $e')),
+                  );
+                }
               }
-              if (mounted) Navigator.pop(context, true);
-            } else if (_entries.isEmpty) {
-               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Please add at least one event')),
+            } else {
+              String error = '';
+              if (_selectedSwimmer == null) error = 'No swimmer selected';
+              else if (_entries.isEmpty) error = 'Add at least one event';
+              else error = 'Please check for errors in the form';
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(error)),
               );
             }
           },
@@ -297,7 +352,10 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             minimumSize: const Size(0, 36),
           ),
-          child: const Text('SAVE MEET', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+          child: Text(
+            widget.meetToEdit != null ? 'UPDATE MEET' : 'SAVE MEET', 
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)
+          ),
         ),
       ],
     );
@@ -305,27 +363,44 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
 
   int _parseTimeToMs(String timeStr) {
     try {
-      if (timeStr.contains(':')) {
-        final parts = timeStr.split(':');
-        final mins = int.parse(parts[0]);
-        final secsParts = parts[1].split('.');
-        final secs = int.parse(secsParts[0]);
-        final hundredths = int.parse(secsParts[1]);
-        return (mins * 60 * 1000) + (secs * 1000) + (hundredths * 10);
-      } else {
-        final parts = timeStr.split('.');
-        final secs = int.parse(parts[0]);
-        final hundredths = int.parse(parts[1]);
-        return (secs * 1000) + (hundredths * 10);
+      final clean = timeStr.trim().replaceAll(':', '.');
+      final parts = clean.split('.');
+      
+      if (parts.length >= 3) {
+        final m = int.parse(parts[parts.length - 3]);
+        final s = int.parse(parts[parts.length - 2]);
+        final hStr = parts[parts.length - 1];
+        final h = int.parse(hStr.padRight(2, '0').substring(0, 2));
+        return (m * 60000) + (s * 1000) + (h * 10);
+      } else if (parts.length == 2) {
+        final s = int.parse(parts[0]);
+        final hStr = parts[1];
+        final h = int.parse(hStr.padRight(2, '0').substring(0, 2));
+        return (s * 1000) + (h * 10);
+      } else if (parts.length == 1) {
+        return (int.tryParse(parts[0]) ?? 0) * 1000;
       }
+      return 0;
     } catch (e) {
       return 0;
     }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    for (var entry in _entries) {
+      entry.controller.dispose();
+    }
+    super.dispose();
   }
 }
 
 class EventEntry {
   int distance = 50;
   String stroke = 'Freestyle';
-  String timeStr = '';
+  final TextEditingController controller = TextEditingController();
+  
+  String get timeStr => controller.text;
+  set timeStr(String val) => controller.text = val;
 }

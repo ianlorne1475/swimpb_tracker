@@ -127,13 +127,13 @@ class PBCard extends StatelessWidget {
                           fontWeight: FontWeight.w400,
                         ),
                       ),
-                      if (hasQTime && showQTLabel)
+                      if (targetStandard != null && showQTLabel)
                         Text(
-                          'Target: ${formatTime(metStandards.first.timeMs)}',
+                          'Target: ${formatTime(targetStandard!.timeMs)} (${targetStandard!.standardName})',
                           style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.accent : Colors.green.shade700,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.accent : Colors.green.shade700,
                           ),
                         ),
                     ],

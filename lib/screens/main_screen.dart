@@ -836,6 +836,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     MeetsTab(
                       key: ValueKey('meets_${_selectedSwimmer!.id}_$_refreshCounter'),
                       swimmerId: _selectedSwimmer!.id!,
+                      onDataChanged: _loadSwimmerData,
                     ),
                   ],
                 ),

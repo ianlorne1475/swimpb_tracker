@@ -199,9 +199,9 @@ class SwimmerHeader extends StatelessWidget {
                                     border: Border.all(color: isDark ? AppColors.border : AppColors.lightBorder),
                                   ),
                                   child: Icon(
-                                    Icons.edit_rounded, 
+                                    Icons.edit, 
                                     color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary, 
-                                    size: 20
+                                    size: 18
                                   ),
                                 ),
                               ),

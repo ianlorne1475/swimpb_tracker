@@ -160,10 +160,14 @@ class DatabaseHelper {
     return await db.insert('meets', meet.toMap());
   }
 
-  Future<List<SwimMeet>> getMeets() async {
+  Future<int> updateMeet(SwimMeet meet) async {
     Database db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('meets', orderBy: 'date DESC');
-    return List.generate(maps.length, (i) => SwimMeet.fromMap(maps[i]));
+    return await db.update(
+      'meets',
+      meet.toMap(),
+      where: 'id = ?',
+      whereArgs: [meet.id],
+    );
   }
 
   // Event CRUD
@@ -173,6 +177,25 @@ class DatabaseHelper {
       'events', 
       event.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<int> updateEvent(SwimEvent event) async {
+    Database db = await database;
+    return await db.update(
+      'events',
+      event.toMap(),
+      where: 'id = ?',
+      whereArgs: [event.id],
+    );
+  }
+
+  Future<void> deleteEventsByMeetAndSwimmer(int meetId, int swimmerId) async {
+    Database db = await database;
+    await db.delete(
+      'events',
+      where: 'meetId = ? AND swimmerId = ?',
+      whereArgs: [meetId, swimmerId],
     );
   }
 

@@ -3,12 +3,15 @@ import 'package:intl/intl.dart';
 import '../../database_helper.dart';
 import '../../models/meet.dart';
 import '../../models/event.dart';
+import '../../models/swimmer.dart';
+import '../../widgets/add_meet_dialog.dart';
 
 import '../../theme/app_theme.dart';
 
 class MeetsTab extends StatefulWidget {
   final int swimmerId;
-  const MeetsTab({super.key, required this.swimmerId});
+  final VoidCallback? onDataChanged;
+  const MeetsTab({super.key, required this.swimmerId, this.onDataChanged});
 
   @override
   State<MeetsTab> createState() => _MeetsTabState();
@@ -66,6 +69,9 @@ class _MeetsTabState extends State<MeetsTab> {
     if (confirmed == true) {
       await _dbHelper.deleteMeetForSwimmer(meet.id!, widget.swimmerId);
       _refreshMeets();
+      if (widget.onDataChanged != null) {
+        widget.onDataChanged!();
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Meet deleted successfully')),
@@ -192,6 +198,32 @@ class _MeetsTabState extends State<MeetsTab> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            IconButton(
+              icon: Icon(
+                Icons.edit_rounded, 
+                color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
+                size: 20,
+              ),
+              onPressed: () async {
+                final result = await showDialog(
+                  context: context,
+                  builder: (context) => AddMeetDialog(
+                    initialSwimmer: Swimmer(id: widget.swimmerId, firstName: '', surname: '', dob: DateTime.now(), nationality: '', gender: ''),
+                    meetToEdit: meet,
+                  ),
+                );
+                if (result == true) {
+                  _refreshMeets();
+                  if (widget.onDataChanged != null) {
+                    widget.onDataChanged!();
+                  }
+                }
+              },
+              tooltip: 'Edit Meet',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 8),
             IconButton(
               icon: Icon(
                 Icons.delete_outline_rounded, 

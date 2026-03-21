@@ -16,7 +16,7 @@ class RecentBestsTab extends StatefulWidget {
 class _RecentBestsTabState extends State<RecentBestsTab> {
   int _distance = 50;
   String _stroke = 'Butterfly';
-  String _course = 'SCM';
+  String _course = 'LCM';
 
   List<int> _getValidDistances() {
     if (_stroke == 'Freestyle') {
@@ -143,16 +143,24 @@ class _RecentBestsTabState extends State<RecentBestsTab> {
   }
 
   Widget _buildEventCard(SwimEvent event, List<QualifyingTime> standards, int index) {
-    final metStandards = standards.where((s) => 
+    final eventStandards = standards.where((s) => 
       s.distance == event.distance && 
       s.stroke == event.stroke && 
-      s.course == event.course && 
-      event.timeMs <= s.timeMs
+      s.course == event.course
     ).toList();
+    final metStandards = eventStandards.where((s) => event.timeMs <= s.timeMs).toList();
+
+    // Target the first standard they haven't met, or the hardest one if they've met all
+    QualifyingTime? target;
+    if (eventStandards.isNotEmpty) {
+      final unmet = eventStandards.where((s) => event.timeMs > s.timeMs).toList();
+      target = unmet.isNotEmpty ? unmet.first : eventStandards.last;
+    }
     
     return PBCard(
       event: event, 
       metStandards: metStandards,
+      targetStandard: target,
       rank: index + 1,
       showQTLabel: true,
     );

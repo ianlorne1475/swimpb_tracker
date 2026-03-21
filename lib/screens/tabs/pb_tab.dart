@@ -77,23 +77,35 @@ class PersonalBestsTab extends StatelessWidget {
             orElse: () => null,
           );
 
+          final scmStandards = standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == 'SCM').toList();
+          final scmTarget = scmEvent != null && scmStandards.isNotEmpty 
+              ? (scmStandards.where((s) => scmEvent.timeMs > s.timeMs).isNotEmpty 
+                  ? scmStandards.where((s) => scmEvent.timeMs > s.timeMs).first 
+                  : scmStandards.last)
+              : (scmStandards.isNotEmpty ? scmStandards.first : null);
+
           Widget scmCard = scmEvent != null 
               ? PBCard(
                   event: scmEvent, 
-                  metStandards: standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == 'SCM' && scmEvent.timeMs <= s.timeMs).toList(), 
-                  targetStandard: standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == 'SCM').isNotEmpty 
-                      ? standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == 'SCM').first 
-                      : null
+                  metStandards: scmStandards.where((s) => scmEvent.timeMs <= s.timeMs).toList(), 
+                  targetStandard: scmTarget,
+                  showQTLabel: true,
                 )
-              : const SizedBox(height: 186); // Card (170) + margins (8+8)
+              : const SizedBox(height: 186);
+
+          final lcmStandards = standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == 'LCM').toList();
+          final lcmTarget = lcmEvent != null && lcmStandards.isNotEmpty 
+              ? (lcmStandards.where((s) => lcmEvent.timeMs > s.timeMs).isNotEmpty 
+                  ? lcmStandards.where((s) => lcmEvent.timeMs > s.timeMs).first 
+                  : lcmStandards.last)
+              : (lcmStandards.isNotEmpty ? lcmStandards.first : null);
 
           Widget lcmCard = lcmEvent != null 
               ? PBCard(
                   event: lcmEvent, 
-                  metStandards: standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == 'LCM' && lcmEvent.timeMs <= s.timeMs).toList(),
-                  targetStandard: standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == 'LCM').isNotEmpty 
-                      ? standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == 'LCM').first 
-                      : null
+                  metStandards: lcmStandards.where((s) => lcmEvent.timeMs <= s.timeMs).toList(),
+                  targetStandard: lcmTarget,
+                  showQTLabel: true,
                 )
               : const SizedBox(height: 186);
 
@@ -138,12 +150,18 @@ class PersonalBestsTab extends StatelessWidget {
 
                         Widget buildCard(SwimEvent? event, String course) {
                           if (event == null) return const SizedBox(height: 186);
+                          final eventStandards = standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == course).toList();
+                          final target = eventStandards.isNotEmpty 
+                              ? (eventStandards.where((s) => event.timeMs > s.timeMs).isNotEmpty 
+                                  ? eventStandards.where((s) => event.timeMs > s.timeMs).first 
+                                  : eventStandards.last)
+                              : null;
+                              
                           return PBCard(
                             event: event, 
-                            metStandards: standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == course && event.timeMs <= s.timeMs).toList(), 
-                            targetStandard: standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == course).isNotEmpty 
-                                ? standards.where((s) => s.distance == dist && s.stroke == stroke && s.course == course).first 
-                                : null
+                            metStandards: eventStandards.where((s) => event.timeMs <= s.timeMs).toList(), 
+                            targetStandard: target,
+                            showQTLabel: true,
                           );
                         }
 
