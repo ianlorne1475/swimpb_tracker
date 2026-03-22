@@ -51,4 +51,6 @@ class Swimmer {
     final now = DateTime.now();
     return now.year - dob.year;
   }
+
+  int calculateAge() => calculateAgeAtEndYear();
 }

@@ -164,7 +164,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                   onChanged: (v) => setState(() => _timeframe = v!),
                 ),
                 const SizedBox(width: 16),
-                TextButton.icon(
+                TextButton(
                   onPressed: () async {
                     final dbHelper = DatabaseHelper();
                     final swimmers = await dbHelper.getSwimmers();
@@ -195,16 +195,21 @@ class _ProgressionTabState extends State<ProgressionTab> {
                       setState(() {});
                     }
                   },
-                  icon: const Icon(Icons.track_changes, size: 20),
-                  label: const Text(
-                    'Goal',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
-                  ),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Row(
+                    children: [
+                      Text(
+                        'Goal',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.track_changes, size: 20, color: Colors.blue),
+                    ],
                   ),
                 ),
               ],

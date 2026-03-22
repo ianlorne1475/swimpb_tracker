@@ -29,7 +29,7 @@ class DatabaseHelper {
     String path = _testPath ?? join(await getDatabasesPath(), 'swimpb_tracker.db');
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -61,6 +61,9 @@ class DatabaseHelper {
     }
     if (oldVersion < 8) {
       await _createGoalsTable(db);
+    }
+    if (oldVersion < 9) {
+      try { await db.execute('ALTER TABLE swimmer_goals ADD COLUMN targetDate TEXT'); } catch (_) {}
     }
   }
 
@@ -126,6 +129,7 @@ class DatabaseHelper {
         stroke TEXT,
         course TEXT,
         timeMs INTEGER,
+        targetDate TEXT,
         FOREIGN KEY (swimmerId) REFERENCES swimmers (id) ON DELETE CASCADE
       )
     ''');

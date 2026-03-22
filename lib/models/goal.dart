@@ -5,6 +5,7 @@ class SwimmerGoal {
   final String stroke;
   final String course;
   final int timeMs;
+  final DateTime? targetDate;
 
   SwimmerGoal({
     this.id,
@@ -13,6 +14,7 @@ class SwimmerGoal {
     required this.stroke,
     required this.course,
     required this.timeMs,
+    this.targetDate,
   });
 
   Map<String, dynamic> toMap() {
@@ -23,6 +25,7 @@ class SwimmerGoal {
       'stroke': stroke,
       'course': course,
       'timeMs': timeMs,
+      'targetDate': targetDate?.toIso8601String(),
     };
   }
 
@@ -34,6 +37,7 @@ class SwimmerGoal {
       stroke: map['stroke'],
       course: map['course'],
       timeMs: map['timeMs'],
+      targetDate: map['targetDate'] != null ? DateTime.parse(map['targetDate']) : null,
     );
   }
 

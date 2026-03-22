@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/goal.dart';
 import '../theme/app_theme.dart';
 
@@ -24,6 +25,7 @@ class AddGoalDialog extends StatefulWidget {
 
 class _AddGoalDialogState extends State<AddGoalDialog> {
   late TextEditingController _timeController;
+  DateTime? _targetDate;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -32,6 +34,7 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
     _timeController = TextEditingController(
       text: widget.existingGoal?.formattedTime ?? '',
     );
+    _targetDate = widget.existingGoal?.targetDate;
   }
 
   @override
@@ -113,6 +116,37 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
                 return null;
               },
             ),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _targetDate ?? DateTime.now().add(const Duration(days: 30)),
+                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                  lastDate: DateTime.now().add(const Duration(days: 3650)),
+                );
+                if (picked != null) {
+                  setState(() => _targetDate = picked);
+                }
+              },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Target Date (Optional)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.calendar_today_outlined),
+                ),
+                child: Text(
+                  _targetDate != null 
+                      ? DateFormat('d MMM yyyy').format(_targetDate!) 
+                      : 'No date set',
+                  style: TextStyle(
+                    color: _targetDate != null 
+                        ? (isDark ? Colors.white : AppColors.lightTextPrimary)
+                        : (isDark ? AppColors.textSecondary : AppColors.lightTextSecondary),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -138,6 +172,7 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
                   stroke: widget.stroke,
                   course: widget.course,
                   timeMs: timeMs,
+                  targetDate: _targetDate,
                 );
                 Navigator.of(context).pop(goal);
               }

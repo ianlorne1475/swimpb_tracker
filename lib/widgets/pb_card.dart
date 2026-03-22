@@ -137,7 +137,7 @@ class PBCard extends StatelessWidget {
                       ),
                       if (targetStandard != null && showQTLabel)
                         Text(
-                          'Target: ${formatTime(targetStandard!.timeMs)} (${targetStandard!.standardName})',
+                          'QT: ${formatTime(targetStandard!.timeMs)} (${targetStandard!.standardName})',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
@@ -292,20 +292,38 @@ class PBCard extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.track_changes,
-              size: 14,
-              color: color,
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(
+                Icons.track_changes,
+                size: 14,
+                color: color,
+              ),
             ),
             const SizedBox(width: 4),
-            Text(
-              'GOAL: ${goal!.formattedTime}',
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Goal: ${goal!.formattedTime}',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (goal!.targetDate != null)
+                  Text(
+                    'by ${DateFormat('d MMM yyyy').format(goal!.targetDate!)}',
+                    style: TextStyle(
+                      color: isDark ? Colors.white.withOpacity(0.7) : AppColors.lightTextSecondary,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
             ),
           ],
         ),

@@ -5,10 +5,12 @@ import '../models/event.dart';
 import '../services/report_service.dart';
 import '../widgets/pb_certificate.dart';
 import '../widgets/add_goal_dialog.dart';
+import '../widgets/feedback_dialog.dart';
 import 'dart:async';
 import 'package:screenshot/screenshot.dart';
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
+import 'package:printing/printing.dart';
 import 'package:file_picker/file_picker.dart';
 import '../database_helper.dart';
 import '../widgets/ocr_review_dialog.dart';
@@ -476,7 +478,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         actions: [
           PopupMenuButton<String>(
             icon: Icon(
-              Icons.settings_outlined, 
+              Icons.menu, 
               color: Theme.of(context).brightness == Brightness.dark 
                   ? AppColors.textSecondary 
                   : AppColors.lightTextSecondary,
@@ -578,6 +580,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 _showReportsDialog();
               } else if (value == 'export') {
                 _handleBulkExport();
+              } else if (value == 'feedback') {
+                showDialog(
+                  context: context,
+                  builder: (context) => const FeedbackDialog(),
+                );
               }
             },
             itemBuilder: (context) => [
@@ -611,6 +618,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   ],
                 ),
               ),
+              const PopupMenuDivider(height: 1),
               PopupMenuItem(
                 value: 'toggle_theme',
                 child: Row(
@@ -641,6 +649,16 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     Icon(Icons.help_outline_rounded, size: 20),
                     const SizedBox(width: 8),
                     Text('App Help'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'feedback',
+                child: Row(
+                  children: [
+                    Icon(Icons.feedback_outlined, size: 20),
+                    SizedBox(width: 8),
+                    Text('Feedback'),
                   ],
                 ),
               ),
@@ -1042,22 +1060,53 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.card_membership, color: AppColors.primary),
-              title: const Text('Share PB Certificate'),
-              subtitle: const Text('Create a shareable award for a PB'),
-              onTap: () {
-                Navigator.pop(context);
-                _showCertificateSelectionDialog();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
-              title: const Text('PDF Performance Report'),
-              subtitle: const Text('Full history PDF report'),
+              leading: const Icon(Icons.stars, color: Colors.orange),
+              title: const Text('National QT Report'),
+              subtitle: const Text('National standards met (SNAG 2026)'),
               onTap: () async {
                 Navigator.pop(context);
                 final events = await _dbHelper.getEventsBySwimmer(_selectedSwimmer!.id!);
-                await ReportService.generatePerformanceReport(_selectedSwimmer!, events);
+                final age = _selectedSwimmer!.calculateAge();
+                final standards = await _dbHelper.getStandardsForSwimmer(age, _selectedSwimmer!.gender ?? 'Male');
+                
+                final pdfBytes = await ReportService.generateNationalQTReport(_selectedSwimmer!, events, standards);
+                final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
+                await Printing.layoutPdf(
+                  onLayout: (format) async => pdfBytes,
+                  name: '${_selectedSwimmer!.firstName}_${_selectedSwimmer!.surname}_${dateStr}_national_qt_report',
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.track_changes, color: Colors.blue),
+              title: const Text('Personal Goals Report'),
+              subtitle: const Text('Route to your personal targets'),
+              onTap: () async {
+                Navigator.pop(context);
+                final goals = await _dbHelper.getGoalsBySwimmer(_selectedSwimmer!.id!);
+                final allEvents = await _dbHelper.getEventsBySwimmer(_selectedSwimmer!.id!);
+                
+                final pdfBytes = await ReportService.generatePersonalGoalsReport(_selectedSwimmer!, goals, allEvents);
+                final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
+                await Printing.layoutPdf(
+                  onLayout: (format) async => pdfBytes,
+                  name: '${_selectedSwimmer!.firstName}_${_selectedSwimmer!.surname}_${dateStr}_personal_goals_report',
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history_edu_outlined, color: Colors.orange),
+              title: const Text('Personal Bests Report'),
+              subtitle: const Text('Full history of swimmer PBs.'),
+              onTap: () async {
+                Navigator.pop(context);
+                final events = await _dbHelper.getEventsBySwimmer(_selectedSwimmer!.id!);
+                final pdfBytes = await ReportService.generatePersonalBestsReport(_selectedSwimmer!, events);
+                final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
+                await Printing.layoutPdf(
+                  onLayout: (format) async => pdfBytes,
+                  name: '${_selectedSwimmer!.firstName}_${_selectedSwimmer!.surname}_${dateStr}_personal_bests_report',
+                );
               },
             ),
           ],
@@ -1123,6 +1172,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       context: context,
     );
 
-    await ReportService.shareCertificate(imageBytes, _selectedSwimmer!.fullName);
+    final pdfBytes = await ReportService.generateCertificatePdf(imageBytes);
+    final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
+    await Printing.layoutPdf(
+      onLayout: (format) async => pdfBytes,
+      name: '${_selectedSwimmer!.firstName}_${_selectedSwimmer!.surname}_${dateStr}_pb_certificate_${pb.distance}m_${pb.stroke}',
+    );
   }
 }

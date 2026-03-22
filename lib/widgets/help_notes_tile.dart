@@ -117,29 +117,15 @@ class HelpReleaseNotesTile extends StatelessWidget {
                       onTap: () => _shareSampleFile(context),
                     ),
                     _buildBulletItem(context, '3', 'Bulk export swimmer data to either a .xlsx or .csv file.'),
-                    _buildBulletItem(context, '4', 'Generate PB Certificates and PDF Performance Reports.'),
+                    _buildBulletItem(context, '4', 'Generate various reports for personal bests, national qualification and personal goals.'),
                     _buildBulletItem(context, '5', 'Toggle the app from light mode to dark mode.'),
                     _buildBulletItem(context, '6', 'Delete a swimmer profile and their swim data.'),
                     _buildBulletItem(context, '7', 'Delete swim data for a selected swimmer.'),
 
                     const SizedBox(height: 24),
                     _buildSectionTitle(context, 'Additional Information'),
-                    _buildBodyText(context, 'The app includes the LCM qualification times as used for the SNAG 2026 meet.\n\nAny time in the PB tab that meets the qualification time is annotated with a gold QT badge. All LCM PB times also include the delta between the PB and QT times.\n\nAny times in the Recent tab that meet the qualification time are annotated with a gold QT badge.\n\nThe graphs displayed in the Chart tab for LCM selections include the qualification standard as a green horizontal line on the graph.\n\nAdditionally, users can set their own custom target "Goals" for any event by tapping the bulls-eye icon on the Chart tab. Custom goals are displayed as blue dashed lines on the graphs, and as a target time on the PB and Recent tabs.\n\nFor meet records on the History tab SCM meets are annotated in blue, LCM meets are annotated in green.\n\nThe "Reports" section in the settings menu offers two professional options:\n1. PB Certificate: Creates a shareable "award-style" certificate for any personal best achievement.\n2. Performance Report: Generates a comprehensive PDF summary of the swimmer\'s career, including key stats, meet counts, and stroke breakdowns.\n\nSwimmer age is calculated as of the 31st December, this is in line with Singapore Aquatics policy.'),
+                    _buildBodyText(context, 'The app includes the LCM qualification times as used for the SNAG 2026 meet.\n\nAny time in the PB tab that meets the qualification time is annotated with a gold QT badge. All LCM PB times also include the delta between the PB and QT times.\n\nAny times in the Recent tab that meet the qualification time are annotated with a gold QT badge.\n\nThe graphs displayed in the Chart tab for LCM selections include the qualification standard as a green horizontal line on the graph.\n\nAdditionally, users can set their own custom target "Goals" for any event by tapping the bulls-eye icon on the Chart tab. Custom goals are displayed as blue dashed lines on the graphs, and as a target time on the PB and Recent tabs.\n\nFor meet records on the History tab SCM meets are annotated in blue, LCM meets are annotated in green.\n\nSwimmer age is calculated as of the 31st December, this is in line with Singapore Aquatics policy.'),
                     
-                    const SizedBox(height: 24),
-                    _buildSectionTitle(context, 'Contact'),
-                    InkWell(
-                      onTap: () => launchUrl(Uri.parse('mailto:trisoftsg@gmail.com')),
-                      child: Text(
-                        'trisoftsg@gmail.com',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                          decoration: TextDecoration.underline,
-                          decorationColor: AppColors.primary,
-                        ),
-                      ),
-                    ),
 
                     const SizedBox(height: 32),
                     const Divider(height: 1),
