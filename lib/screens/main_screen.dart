@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'package:printing/printing.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:archive/archive.dart';
 import '../database_helper.dart';
 import '../widgets/ocr_review_dialog.dart';
 import '../models/swimmer.dart';
@@ -163,25 +164,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     }
   }
 
-  Future<String?> _showCourseSelectionDialog() async {
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Course Type'),
-        content: const Text('Are these results from a Short Course (25m) or Long Course (50m) pool?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'SCM'),
-            child: const Text('SCM (25m)'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'LCM'),
-            child: const Text('LCM (50m)'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showAppHelp() {
     showDialog(
@@ -202,136 +184,50 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     );
   }
 
-  Future<void> _handleBulkImport() async {
-    if (_selectedSwimmer == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select or add a swimmer first.')),
-      );
-      return;
+
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  void _hideLoadingDialog() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
     }
-    
+  }
+
+  Future<void> _handleImportData() async {
     try {
-      Swimmer? selectedImportSwimmer = _selectedSwimmer;
-      final bool? proceed = await showDialog<bool>(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Bulk Import'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Import race results (.csv, .xlsx, or photos) and attribute them to the selected swimmer:'),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<Swimmer>(
-                  value: selectedImportSwimmer,
-                  decoration: const InputDecoration(labelText: 'Target Swimmer'),
-                  items: _swimmers.map((s) => DropdownMenuItem(value: s, child: Text(s.fullName))).toList(),
-                  onChanged: (val) => setDialogState(() => selectedImportSwimmer = val),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-              ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Select File')),
-            ],
-          ),
-        ),
-      );
-
-      if (proceed != true) return;
-
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['csv', 'xlsx', 'jpg', 'jpeg', 'png'],
+        allowedExtensions: ['csv', 'xlsx', 'json'],
       );
 
       if (result != null) {
         final file = File(result.files.single.path!);
-        final extension = file.path.split('.').last.toLowerCase();
+        _showLoadingDialog();
         
-        if (!mounted) return;
+        final count = await _importService.importFromFile(file);
         
-        int count = 0;
-        if (['jpg', 'jpeg', 'png'].contains(extension)) {
-          // OCR Flow
-          final course = await _showCourseSelectionDialog();
-          if (course == null) return;
-          
-          final meetInfo = await _showMeetInfoDialog();
-          if (meetInfo == null) return;
-
-          if (!mounted) return;
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => const Center(child: CircularProgressIndicator()),
-          );
-
-          final results = await _importService.extractResultsFromImage(file);
-          
-          if (!mounted) return;
-          Navigator.pop(context); // Close loading dialog
-
-          final reviewedResults = await showDialog<List<Map<String, dynamic>>>(
-            context: context,
-            builder: (context) => OcrReviewDialog(extractedEvents: results, course: course),
-          );
-
-          if (reviewedResults != null && reviewedResults.isNotEmpty) {
-            if (!mounted) return;
-             showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => const Center(child: CircularProgressIndicator()),
-            );
-            count = await _importService.importReviewedResults(
-              selectedImportSwimmer!.id!, 
-              meetInfo['title'], 
-              meetInfo['date'], 
-              course, 
-              reviewedResults
-            );
-            if (!mounted) return;
-            Navigator.pop(context); // Close second loading dialog
-          }
-        } else {
-          // Standard Flow
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => const Center(child: CircularProgressIndicator()),
-          );
-
-          count = await _importService.importFromFile(
-            file, 
-            targetSwimmerId: selectedImportSwimmer?.id,
-            course: null,
-          );
-          
-          if (!mounted) return;
-          Navigator.pop(context); // Close loading dialog
-        }
-        
-        await _loadSwimmers();
+        _hideLoadingDialog();
 
         if (mounted) {
+          await _loadSwimmers();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Import completed: $count events added/updated!'),
-            ),
+            SnackBar(content: Text('Import complete. $count results imported.')),
           );
         }
-        
-        _loadSwimmerData();
-        setState(() {}); // Force rebuild tabs
       }
     } catch (e) {
-      if (!mounted) return;
-      if (Navigator.canPop(context)) Navigator.pop(context);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Import failed: $e')),
-      );
+      if (mounted) {
+        _hideLoadingDialog();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error during import: $e')),
+        );
+      }
     }
   }
 
@@ -415,55 +311,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     }
   }
 
-  Future<Map<String, dynamic>?> _showMeetInfoDialog() async {
-    String title = 'OCR Import Meet';
-    DateTime date = DateTime.now();
-    
-    return await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Meet Information'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                initialValue: title,
-                decoration: const InputDecoration(labelText: 'Meet Title'),
-                onChanged: (val) => title = val,
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Meet Date', style: TextStyle(fontSize: 14)),
-                subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 12)),
-                trailing: const Icon(Icons.calendar_today, size: 20),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: date,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) setDialogState(() => date = picked);
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, {'title': title, 'date': date}),
-              child: const Text('Continue'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -476,17 +323,16 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         title: const Text('SwimPB Tracker'),
         centerTitle: true,
         actions: [
-          PopupMenuButton<String>(
-            icon: Icon(
-              Icons.menu, 
-              color: Theme.of(context).brightness == Brightness.dark 
-                  ? AppColors.textSecondary 
-                  : AppColors.lightTextSecondary,
-            ),
+          if (_swimmers.isNotEmpty)
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.menu, 
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? AppColors.textSecondary 
+                    : AppColors.lightTextSecondary,
+              ),
             onSelected: (value) async {
-              if (value == 'import') {
-                _handleBulkImport();
-              } else if (value == 'add_swimmer') {
+              if (value == 'add_swimmer') {
                 final result = await showDialog(
                   context: context,
                   builder: (context) => const SwimmerDialog(),
@@ -568,6 +414,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     );
                   }
                 }
+              } else if (value == 'import_data') {
+                _handleImportData();
               } else if (value == 'clear_all') {
                 _handleClearAllData();
               } else if (value == 'delete_race_data') {
@@ -578,8 +426,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 _showAppHelp();
               } else if (value == 'reports') {
                 _showReportsDialog();
-              } else if (value == 'export') {
-                _handleBulkExport();
+              } else if (value == 'export_data') {
+                _handleExportData();
               } else if (value == 'feedback') {
                 showDialog(
                   context: context,
@@ -599,22 +447,22 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 ),
               ),
               const PopupMenuItem(
-                value: 'import',
+                value: 'import_data',
                 child: Row(
                   children: [
-                    Icon(Icons.upload_file, size: 20),
+                    Icon(Icons.person_add_alt_1_outlined, size: 20),
                     SizedBox(width: 8),
-                    Text('Bulk Import'),
+                    Text('Import Individual or Team Data'),
                   ],
                 ),
               ),
               const PopupMenuItem(
-                value: 'export',
+                value: 'export_data',
                 child: Row(
                   children: [
                     Icon(Icons.download_for_offline, size: 20),
                     SizedBox(width: 8),
-                    Text('Bulk Export'),
+                    Text('Export Individual or Team Data'),
                   ],
                 ),
               ),
@@ -778,6 +626,16 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 32),
+                          Text(
+                            'Start here if you are not importing data',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12, 
+                              fontStyle: FontStyle.italic, 
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           ElevatedButton.icon(
                             onPressed: () async {
                               final result = await showDialog(
@@ -796,6 +654,31 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               textStyle: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+                              minimumSize: const Size(220, 48),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'If you have a formatted .xlsx file containing either a single swimmer\'s data or team data, start here',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12, 
+                              fontStyle: FontStyle.italic, 
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: _handleImportData,
+                            icon: const Icon(Icons.file_upload_outlined),
+                            label: const Text('IMPORT INDIVIDUAL OR TEAM DATA'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: const BorderSide(color: AppColors.primary),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              textStyle: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+                              minimumSize: const Size(220, 48),
                             ),
                           ),
                         ],
@@ -953,39 +836,77 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   );
 }
 
-  void _handleBulkExport() async {
-    Swimmer? exportSwimmer = _selectedSwimmer;
-    String exportFormat = 'csv';
+  void _handleExportData() async {
+    if (_swimmers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No swimmers found to export.')),
+      );
+      return;
+    }
 
+    // Check if only one swimmer in database
+    if (_swimmers.length == 1) {
+      _executeIndividualExport(_swimmers.first);
+      return;
+    }
+
+    // Check if all swimmers have the same team name set
+    final clubs = _swimmers
+        .map((s) => s.club?.trim())
+        .where((c) => c != null && c.isNotEmpty)
+        .toSet();
+    
+    final bool allSameTeam = clubs.length == 1 && _swimmers.every((s) => s.club?.trim() == clubs.first);
+    
+    String exportType = allSameTeam ? 'Team' : 'Individual'; 
+    Swimmer? exportSwimmer = _selectedSwimmer;
+    String teamName = allSameTeam ? clubs.first! : 'Multiple Swimmers';
+
+    final String ddmmyyyy = DateFormat('ddMMyyyy').format(DateTime.now());
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Export Swimmer Data'),
+          title: Text(allSameTeam ? 'Team Export' : 'Multi-Swimmer Export'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Export all results (SCM & LCM) for the selected swimmer.'),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<Swimmer>(
-                value: exportSwimmer,
-                decoration: const InputDecoration(labelText: 'Swimmer'),
-                items: _swimmers.map((s) => DropdownMenuItem(
-                  value: s,
-                  child: Text(s.fullName),
-                )).toList(),
-                onChanged: (val) => setDialogState(() => exportSwimmer = val),
-              ),
+              Text(allSameTeam 
+                ? 'All swimmers belong to "${clubs.first}".'
+                : 'Multiple swimmers with different teams detected.'),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: exportFormat,
-                decoration: const InputDecoration(labelText: 'Export Format'),
-                items: const [
-                  DropdownMenuItem(value: 'csv', child: Text('CSV (Standard)')),
-                  DropdownMenuItem(value: 'xlsx', child: Text('Excel (.xlsx)')),
+                value: exportType,
+                decoration: const InputDecoration(labelText: 'Export Type'),
+                items: [
+                  const DropdownMenuItem(value: 'Individual', child: Text('Individual Swimmer')),
+                  DropdownMenuItem(
+                    value: 'Team', 
+                    child: Text(allSameTeam ? 'Complete Team' : 'Multiple Swimmers'),
+                  ),
                 ],
-                onChanged: (val) => setDialogState(() => exportFormat = val!),
+                onChanged: (val) => setDialogState(() => exportType = val!),
               ),
+              const SizedBox(height: 16),
+              if (exportType == 'Individual')
+                DropdownButtonFormField<Swimmer>(
+                  value: exportSwimmer,
+                  decoration: const InputDecoration(labelText: 'Select Swimmer'),
+                  items: _swimmers.map((s) => DropdownMenuItem(
+                    value: s,
+                    child: Text(s.fullName),
+                  )).toList(),
+                  onChanged: (val) => setDialogState(() => exportSwimmer = val),
+                )
+              else
+                TextFormField(
+                  initialValue: teamName,
+                  decoration: InputDecoration(
+                    labelText: allSameTeam ? 'Team Name' : 'File Identifier',
+                    helperText: 'Filename will be based on "${teamName.toLowerCase().replaceAll(' ', '_')}"',
+                  ),
+                  onChanged: (val) => setDialogState(() => teamName = val),
+                ),
             ],
           ),
           actions: [
@@ -1002,43 +923,102 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       ),
     );
 
-    if (result != true || exportSwimmer == null) return;
-    final Swimmer swimmerToExport = exportSwimmer!;
-
-    try {
-      final String dateStr = DateFormat('yyyyMMdd').format(DateTime.now());
-      final String fileName = '${swimmerToExport.surname}_${swimmerToExport.firstName}_$dateStr.$exportFormat'
-          .replaceAll(' ', '_')
-          .toLowerCase();
-
-      final exportService = BulkExportService();
-      Uint8List bytes;
-
-      if (exportFormat == 'csv') {
-        final String csvContent = await exportService.getSwimmerCsvContent(swimmerToExport.id!);
-        bytes = Uint8List.fromList(utf8.encode(csvContent));
-      } else if (exportFormat == 'xlsx') {
-        final xlsxBytes = await exportService.getSwimmerXlsxBytes(swimmerToExport.id!);
-        if (xlsxBytes == null) throw Exception('Failed to generate Excel file');
-        bytes = xlsxBytes;
+    if (result == true) {
+      if (exportType == 'Individual') {
+        if (exportSwimmer != null) {
+          _executeIndividualExport(exportSwimmer!);
+        }
       } else {
-        throw Exception('Unsupported format');
+        _executeTeamExport(teamName);
+      }
+    }
+  }
+
+  Future<void> _executeIndividualExport(Swimmer swimmer) async {
+    try {
+      final exportService = BulkExportService();
+      final files = await exportService.getSwimmerFullExport(swimmer.id!);
+      
+      if (files.isEmpty) return;
+
+      final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
+      String fileName;
+      Uint8List exportBytes;
+
+      if (files.length == 1) {
+        fileName = files.keys.first;
+        exportBytes = files.values.first;
+      } else {
+        // Create ZIP
+        fileName = '${swimmer.firstName}_${swimmer.surname}_$dateStr.zip';
+        final encoder = ZipEncoder();
+        final archive = Archive();
+        files.forEach((name, bytes) {
+          archive.addFile(ArchiveFile(name, bytes.length, bytes));
+        });
+        exportBytes = Uint8List.fromList(encoder.encode(archive)!);
       }
 
       final String? outputFile = await FilePicker.platform.saveFile(
         dialogTitle: 'Select export location',
         fileName: fileName,
-        type: FileType.custom,
-        allowedExtensions: [exportFormat],
-        bytes: bytes,
+        bytes: exportBytes,
       );
 
-      if (outputFile == null) return;
-
+      if (outputFile != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Data exported to $outputFile')),
+          );
+        }
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Data exported to $outputFile')),
+          SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
         );
+      }
+    }
+  }
+
+  Future<void> _executeTeamExport(String teamName) async {
+    try {
+      final exportService = BulkExportService();
+      final files = await exportService.getTeamFullExport();
+      
+      if (files.isEmpty) return;
+
+      final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
+      String fileName;
+      Uint8List exportBytes;
+
+      // For teams, always zip if there's any file besides the XLSX (like photos)
+      // Actually, if there's only one file it's the XLSX.
+      if (files.length == 1) {
+        fileName = files.keys.first;
+        exportBytes = files.values.first;
+      } else {
+        fileName = '${teamName.replaceAll(" ", "_")}_$dateStr.zip';
+        final encoder = ZipEncoder();
+        final archive = Archive();
+        files.forEach((name, bytes) {
+          archive.addFile(ArchiveFile(name, bytes.length, bytes));
+        });
+        exportBytes = Uint8List.fromList(encoder.encode(archive)!);
+      }
+
+      final String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Select export location',
+        fileName: fileName,
+        bytes: exportBytes,
+      );
+
+      if (outputFile != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Data exported to $outputFile')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

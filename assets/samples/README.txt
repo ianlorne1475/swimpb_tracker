@@ -21,6 +21,21 @@ The settings menu allows the user to manage the following:
 6. Delete a swimmer profile and their swim data.
 7. Delete swim data for a selected swimmer.
 
+## Bulk Import Format (CSV)
+For successful bulk import, your CSV file should include the following columns:
+*   **FirstName, Surname**: Swimmer's name.
+*   **Gender**: 'Male' or 'Female'.
+*   **DOB**: Date of Birth (YYYY-MM-DD).
+*   **Nationality**: 2-letter country code (e.g., SG).
+*   **Club**: Swimmer's club name (optional).
+*   **MeetTitle**: Name of the swim meet.
+*   **MeetDate**: Date of the meet (YYYY-MM-DD).
+*   **Course**: 'SCM' or 'LCM'.
+*   **Distance**: Numeric distance (50, 100, 200, etc.).
+*   **Stroke**: 'Freestyle', 'Backstroke', 'Breaststroke', 'Butterfly', or 'IM'.
+*   **Time**: Result or goal time in format 'MM:SS.hh' or 'SS.hh'.
+*   **DataType**: 'result' (default) or 'goal'.
+
 Additional information:
 
 The app includes the LCM qualification times as used for the SNAG 2026 meet.

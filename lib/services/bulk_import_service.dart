@@ -5,10 +5,14 @@ import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:archive/archive.dart';
+import 'package:xml/xml.dart';
+import 'package:sqflite/sqflite.dart';
 import '../database_helper.dart';
 import '../models/swimmer.dart';
 import '../models/meet.dart';
 import '../models/event.dart';
+import '../models/goal.dart';
 
 class BulkImportService {
   final DatabaseHelper _dbHelper;
@@ -27,6 +31,11 @@ class BulkImportService {
       final bytes = await file.readAsBytes();
       return await importFromXlsx(bytes, targetSwimmerId: targetSwimmerId, course: course);
     }
+    
+    if (extension == 'zip') {
+      final bytes = await file.readAsBytes();
+      return await importFromZip(bytes, targetSwimmerId: targetSwimmerId, course: course);
+    }
 
     if (extension == 'jpg' || extension == 'jpeg' || extension == 'png') {
        // OCR handled externally via MainScreen
@@ -44,27 +53,88 @@ class BulkImportService {
   }
 
   Future<int> importFromXlsx(Uint8List bytes, {int? targetSwimmerId, String? course}) async {
-    final excel = Excel.decodeBytes(bytes);
-    int totalImported = 0;
-    
-    for (var table in excel.tables.keys) {
-      final sheet = excel.tables[table]!;
-      final List<List<dynamic>> rows = sheet.rows.map((row) => row.map((cell) => cell?.value).toList()).toList();
-      totalImported += await _importFromRows(rows, targetSwimmerId: targetSwimmerId, course: course);
-    }
-    return totalImported;
+    return await _dbHelper.transaction((txn) async {
+      final excel = Excel.decodeBytes(bytes);
+      int totalImported = 0;
+      final archive = ZipDecoder().decodeBytes(bytes);
+      
+      for (var table in excel.tables.keys) {
+        final sheet = excel.tables[table]!;
+        final List<List<dynamic>> rows = sheet.rows.map((row) => row.map((cell) => cell?.value).toList()).toList();
+        
+        // Extract images manually from the archive
+        final Map<int, Uint8List> rowToImage = await _extractXlsxImages(archive, table, rows);
+        
+        totalImported += await _importFromRows(rows, targetSwimmerId: targetSwimmerId, course: course, rowImages: rowToImage, sheetName: table, executor: txn);
+      }
+      return totalImported;
+    });
+  }
+
+  Future<int> importFromZip(Uint8List bytes, {int? targetSwimmerId, String? course}) async {
+    return await _dbHelper.transaction((txn) async {
+      final archive = ZipDecoder().decodeBytes(bytes);
+      Uint8List? xlsxBytes;
+      final Map<String, Uint8List> externalFiles = {};
+      
+      for (final file in archive) {
+        if (file.isFile) {
+          if (file.name.endsWith('.xlsx')) {
+            xlsxBytes = Uint8List.fromList(file.content);
+          } else {
+            // Store photos (can be in subfolders like 'photos/')
+            externalFiles[file.name] = Uint8List.fromList(file.content);
+            // Also store by basename for easier lookup
+            externalFiles[file.name.split('/').last] = Uint8List.fromList(file.content);
+          }
+        }
+      }
+
+      if (xlsxBytes == null) throw Exception('No .xlsx file found in ZIP');
+
+      final excel = Excel.decodeBytes(xlsxBytes);
+      int totalImported = 0;
+
+      for (var table in excel.tables.keys) {
+        final sheet = excel.tables[table]!;
+        final List<List<dynamic>> rows = sheet.rows.map((row) => row.map((cell) => cell?.value).toList()).toList();
+        
+        // Map external files to rows
+        final Map<int, Uint8List> rowToImage = {};
+        if (rows.isNotEmpty) {
+          final header = rows.first.map((e) => e.toString().toLowerCase().trim()).toList();
+          final photoFileIdx = header.indexOf('photofile');
+          
+          if (photoFileIdx != -1) {
+            for (int i = 1; i < rows.length; i++) {
+              if (rows[i].length > photoFileIdx) {
+                final fileName = rows[i][photoFileIdx].toString();
+                if (fileName.isNotEmpty && externalFiles.containsKey(fileName)) {
+                  rowToImage[i] = externalFiles[fileName]!;
+                }
+              }
+            }
+          }
+        }
+
+        totalImported += await _importFromRows(rows, targetSwimmerId: targetSwimmerId, course: course, rowImages: rowToImage, sheetName: table, executor: txn);
+      }
+      return totalImported;
+    });
   }
 
   Future<int> importFromJson(String jsonString) async {
-    final Map<String, dynamic> data = jsonDecode(jsonString);
-    int importedCount = 0;
-    
-    if (data.containsKey('swimmers')) {
-      for (var swimmerData in data['swimmers']) {
-        importedCount += await _importSwimmer(swimmerData);
+    return await _dbHelper.transaction((txn) async {
+      final Map<String, dynamic> data = jsonDecode(jsonString);
+      int importedCount = 0;
+      
+      if (data.containsKey('swimmers')) {
+        for (var swimmerData in data['swimmers']) {
+          importedCount += await _importSwimmer(swimmerData, executor: txn);
+        }
       }
-    }
-    return importedCount;
+      return importedCount;
+    });
   }
 
   Future<int> importFromCsv(String csvString, {int? targetSwimmerId, String? course}) async {
@@ -87,47 +157,186 @@ class BulkImportService {
       eol: csvString.contains('\r\n') ? '\r\n' : '\n',
     ).convert(csvString);
     
-    return await _importFromRows(rows, targetSwimmerId: targetSwimmerId, course: course);
+    return await _dbHelper.transaction((txn) async {
+      return await _importFromRows(rows, targetSwimmerId: targetSwimmerId, course: course, executor: txn);
+    });
+  }
+
+  Future<String?> _saveSwimmerPhoto(String firstName, String surname, Uint8List bytes) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final portraitsDir = Directory('${appDir.path}/portraits');
+      if (!await portraitsDir.exists()) {
+        await portraitsDir.create(recursive: true);
+      }
+      
+      final fileName = '${firstName.toLowerCase()}_${surname.toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final file = File('${portraitsDir.path}/$fileName');
+      await file.writeAsBytes(bytes);
+      return file.path;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<Map<int, Uint8List>> _extractXlsxImages(Archive archive, String sheetName, List<List<dynamic>> rows) async {
+    final Map<int, Uint8List> rowToImage = {};
+    try {
+      int imageColIdx = -1;
+      if (rows.isNotEmpty) {
+        final header = rows.first.map((e) => e.toString().toLowerCase().replaceAll(' ', '').replaceAll('_', '')).toList();
+        final synonyms = ['image', 'photo', 'picture', 'portrait', 'profile', 'swimmerphoto', 'swimmerimage'];
+        for (var syn in synonyms) {
+          imageColIdx = header.indexOf(syn);
+          if (imageColIdx != -1) break;
+        }
+      }
+
+      // 1. Find the sheet file path and drawing relationship
+      final workbookFile = archive.findFile('xl/workbook.xml');
+      if (workbookFile == null) return {};
+      final workbookDoc = XmlDocument.parse(utf8.decode(workbookFile.content));
+      final sheetNode = workbookDoc.findAllElements('sheet').firstWhere(
+        (node) => node.getAttribute('name') == sheetName,
+        orElse: () => throw Exception('Sheet not found'),
+      );
+      final rId = sheetNode.getAttribute('r:id');
+
+      final workbookRelsFile = archive.findFile('xl/_rels/workbook.xml.rels');
+      if (workbookRelsFile == null) return {};
+      final workbookRelsDoc = XmlDocument.parse(utf8.decode(workbookRelsFile.content));
+      final sheetRelNode = workbookRelsDoc.findAllElements('Relationship').firstWhere(
+        (node) => node.getAttribute('Id') == rId,
+      );
+      final sheetPath = 'xl/${sheetRelNode.getAttribute('Target')}';
+
+      // 2. Find drawing for this sheet
+      final sheetRelsPath = 'xl/worksheets/_rels/${sheetRelNode.getAttribute('Target')!.split('/').last}.rels';
+      final sheetRelsFile = archive.findFile(sheetRelsPath);
+      if (sheetRelsFile == null) return {};
+      final sheetRelsDoc = XmlDocument.parse(utf8.decode(sheetRelsFile.content));
+      final drawingRelNode = sheetRelsDoc.findAllElements('Relationship').firstWhere(
+        (node) => node.getAttribute('Type')!.contains('drawing'),
+        orElse: () => throw Exception('No drawing for sheet'),
+      );
+      final drawingPath = 'xl/drawings/${drawingRelNode.getAttribute('Target')!.split('/').last}';
+
+      // 3. Parse drawing XML
+      final drawingFile = archive.findFile(drawingPath);
+      if (drawingFile == null) return {};
+      final drawingDoc = XmlDocument.parse(utf8.decode(drawingFile.content));
+
+      // 4. Parse drawing relationships
+      final drawingRelsPath = 'xl/drawings/_rels/${drawingRelNode.getAttribute('Target')!.split('/').last}.rels';
+      final drawingRelsFile = archive.findFile(drawingRelsPath);
+      if (drawingRelsFile == null) return {};
+      final drawingRelsDoc = XmlDocument.parse(utf8.decode(drawingRelsFile.content));
+      final Map<String, String> imagePathMap = {};
+      for (var rel in drawingRelsDoc.findAllElements('Relationship')) {
+        imagePathMap[rel.getAttribute('Id')!] = rel.getAttribute('Target')!;
+      }
+
+      // 5. Map anchors to images
+      final anchors = [
+        ...drawingDoc.findAllElements('xdr:twoCellAnchor'),
+        ...drawingDoc.findAllElements('twoCellAnchor'),
+        ...drawingDoc.findAllElements('xdr:oneCellAnchor'),
+        ...drawingDoc.findAllElements('oneCellAnchor'),
+      ];
+
+      for (var anchor in anchors) {
+        final fromNode = anchor.descendants.whereType<XmlElement>().firstWhere(
+          (e) => e.name.local == 'from',
+          orElse: () => throw Exception('no from'),
+        );
+        final rowNode = fromNode.findElements('xdr:row').firstOrNull ?? fromNode.findElements('row').firstOrNull;
+        final colNode = fromNode.findElements('xdr:col').firstOrNull ?? fromNode.findElements('col').firstOrNull;
+        
+        if (rowNode == null || colNode == null) continue;
+
+        final row = int.parse(rowNode.innerText);
+        final col = int.parse(colNode.innerText);
+
+        final pic = anchor.descendants.whereType<XmlElement>().firstWhere(
+          (e) => e.name.local == 'pic',
+          orElse: () => XmlElement(XmlName('null')),
+        );
+        if (pic.name.local == 'pic') {
+          final blip = pic.descendants.whereType<XmlElement>().firstWhere(
+            (e) => e.name.local == 'blip',
+            orElse: () => XmlElement(XmlName('null')),
+          );
+          
+          String? embedId;
+          for (var attr in blip.attributes) {
+            if (attr.name.local == 'embed') {
+              embedId = attr.value;
+              break;
+            }
+          }
+
+          if (embedId != null && imagePathMap.containsKey(embedId)) {
+            var targetMedia = imagePathMap[embedId]!;
+            // Target might be ../media/image1.png
+            final mediaFileName = targetMedia.split('/').last;
+            final mediaPath = 'xl/media/$mediaFileName';
+            
+            final mediaFile = archive.findFile(mediaPath);
+            if (mediaFile != null) {
+              if (imageColIdx == -1 || col == imageColIdx) {
+                rowToImage[row] = Uint8List.fromList(mediaFile.content);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // If anything fails, return empty map
+    }
+    return rowToImage;
   }
 
   Future<int> importReviewedResults(int swimmerId, String defaultMeetTitle, DateTime defaultMeetDate, String course, List<Map<String, dynamic>> results) async {
-    int importedCount = 0;
-    final Map<String, int> meetIdCache = {};
+    return await _dbHelper.transaction((txn) async {
+      int importedCount = 0;
+      final Map<String, int> meetIdCache = {};
 
-    for (var res in results) {
-      try {
-        final title = res['meetTitle'] ?? defaultMeetTitle;
-        final dateStr = res['meetDate']?.toString() ?? '';
-        DateTime date = defaultMeetDate;
-        if (dateStr.isNotEmpty) {
-           date = _parseFlexibleDate(dateStr) ?? defaultMeetDate;
-        }
+      for (var res in results) {
+        try {
+          final title = res['meetTitle'] ?? defaultMeetTitle;
+          final dateStr = res['meetDate']?.toString() ?? '';
+          DateTime date = defaultMeetDate;
+          if (dateStr.isNotEmpty) {
+            date = _parseFlexibleDate(dateStr) ?? defaultMeetDate;
+          }
 
-        final cacheKey = '$title|${date.toIso8601String()}|$course';
-        int meetId;
-        if (meetIdCache.containsKey(cacheKey)) {
-          meetId = meetIdCache[cacheKey]!;
-        } else {
-          meetId = await _dbHelper.getOrCreateMeet(
-            SwimMeet(title: title, date: date, course: course),
+          final cacheKey = '$title|${date.toIso8601String()}|$course';
+          int meetId;
+          if (meetIdCache.containsKey(cacheKey)) {
+            meetId = meetIdCache[cacheKey]!;
+          } else {
+            meetId = await _dbHelper.getOrCreateMeet(
+              SwimMeet(title: title, date: date, course: course),
+              executor: txn,
+            );
+            meetIdCache[cacheKey] = meetId;
+          }
+
+          final event = SwimEvent(
+            meetId: meetId,
+            swimmerId: swimmerId,
+            distance: res['distance'],
+            stroke: res['stroke'],
+            timeMs: SwimEvent.parseTimeToMs(res['time']),
           );
-          meetIdCache[cacheKey] = meetId;
+          await _dbHelper.insertEvent(event, executor: txn);
+          importedCount++;
+        } catch (e) {
+          // Skip malformed result
         }
-
-        final event = SwimEvent(
-          meetId: meetId,
-          swimmerId: swimmerId,
-          distance: res['distance'],
-          stroke: res['stroke'],
-          timeMs: SwimEvent.parseTimeToMs(res['time']),
-        );
-        await _dbHelper.insertEvent(event);
-        importedCount++;
-      } catch (e) {
-        // Skip malformed result
       }
-    }
-    return importedCount;
+      return importedCount;
+    });
   }
 
   DateTime? _parseFlexibleDate(String dateStr) {
@@ -424,7 +633,7 @@ class BulkImportService {
     return extracted;
   }
 
-  Future<int> _importFromRows(List<List<dynamic>> rows, {int? targetSwimmerId, String? course}) async {
+  Future<int> _importFromRows(List<List<dynamic>> rows, {int? targetSwimmerId, String? course, Map<int, Uint8List>? rowImages, String? sheetName, DatabaseExecutor? executor}) async {
     if (rows.isEmpty) return 0;
 
     // Detect Matrix format
@@ -437,7 +646,7 @@ class BulkImportService {
     }
 
     if (isMatrix) {
-      return await _importMatrixCsv(rows, targetSwimmerId: targetSwimmerId, course: course);
+      return await _importMatrixCsv(rows, targetSwimmerId: targetSwimmerId, course: course, executor: executor);
     }
 
     // Standard Row-per-result format
@@ -461,38 +670,67 @@ class BulkImportService {
 
     int startIndex = headerRowIdx != -1 ? headerRowIdx + 1 : 0;
 
+    int? activeSwimmerId = targetSwimmerId;
+    
+    // Fallback: If no target swimmer and sheetName looks like a name, pre-create/lookup swimmer
+    if (activeSwimmerId == null && sheetName != null && !_isGenericSheetName(sheetName)) {
+      final parts = _parseName(sheetName);
+      if (parts != null) {
+        activeSwimmerId = await _dbHelper.getOrCreateSwimmer(
+          Swimmer(
+            firstName: parts['first']!,
+            surname: parts['last']!,
+            dob: DateTime(2000),
+            nationality: 'Unknown',
+            gender: 'Female',
+          ),
+          executor: executor,
+        );
+      }
+    }
+
     for (int i = startIndex; i < rows.length; i++) {
       final row = rows[i];
       if (row.length < 3) continue; // Basic sanity check
 
       try {
-        int? finalSwimmerId = targetSwimmerId;
+        // Check if this row provides a new swimmer name
+        final fNameIdx = colMap['firstname'];
+        final sNameIdx = colMap['surname'];
         
-        if (finalSwimmerId == null) {
-          // If no target swimmer, must have names in row
-          final fNameIdx = colMap['firstname'] ?? 0;
-          final sNameIdx = colMap['surname'] ?? 1;
-          if (row.length <= fNameIdx || row.length <= sNameIdx) continue;
+        if (fNameIdx != null && sNameIdx != null && 
+            row.length > fNameIdx && row.length > sNameIdx &&
+            row[fNameIdx].toString().trim().isNotEmpty && 
+            row[sNameIdx].toString().trim().isNotEmpty) {
           
-          final firstName = row[fNameIdx].toString();
-          final surname = row[sNameIdx].toString();
+          final firstName = row[fNameIdx].toString().trim();
+          final surname = row[sNameIdx].toString().trim();
           final dobStr = colMap.containsKey('dob') && row.length > colMap['dob']! ? row[colMap['dob']!].toString() : null;
           final nationality = colMap.containsKey('nationality') && row.length > colMap['nationality']! ? row[colMap['nationality']!].toString() : 'Unknown';
           final club = colMap.containsKey('club') && row.length > colMap['club']! ? row[colMap['club']!]?.toString() : null;
+          final gender = colMap.containsKey('gender') && row.length > colMap['gender']! ? row[colMap['gender']!].toString() : 'Female';
+          
+          String? photoPath;
+          if (rowImages != null && rowImages.containsKey(i)) {
+            photoPath = await _saveSwimmerPhoto(firstName, surname, rowImages[i]!);
+          }
 
-          finalSwimmerId = await _dbHelper.getOrCreateSwimmer(
+          activeSwimmerId = await _dbHelper.getOrCreateSwimmer(
             Swimmer(
               firstName: firstName, 
               surname: surname, 
+              photoPath: photoPath,
               dob: dobStr != null ? DateTime.tryParse(dobStr) ?? DateTime(2000) : DateTime(2000), 
               nationality: nationality, 
-              gender: 'Female', 
+              gender: gender, 
               club: club,
             ),
+            executor: executor,
           );
         }
 
-        if (finalSwimmerId == null) continue;
+        if (activeSwimmerId == null) continue;
+        int finalSwimmerId = activeSwimmerId;
 
         // Extract Meet Info
         final meetTitle = colMap.containsKey('meettitle') && row.length > colMap['meettitle']! ? row[colMap['meettitle']!].toString() : 'Bulk Import';
@@ -513,15 +751,33 @@ class BulkImportService {
         final stroke = _normalizeStroke(row[strokeIdx].toString());
         final timeMs = SwimEvent.parseTimeToMs(row[timeMsIdx].toString());
         
-        if (timeMs == 0) continue;
+        final dataType = colMap.containsKey('datatype') && row.length > colMap['datatype']! 
+            ? row[colMap['datatype']!].toString().toLowerCase().trim() 
+            : 'result';
 
-        int meetId = await _dbHelper.getOrCreateMeet(
-          SwimMeet(title: meetTitle, date: meetDate, course: course ?? rowCourse),
-        );
+        if (dataType == 'goal') {
+          await _dbHelper.insertGoal(
+            SwimmerGoal(
+              swimmerId: finalSwimmerId,
+              distance: distance,
+              stroke: stroke,
+              course: course ?? rowCourse,
+              timeMs: timeMs,
+              targetDate: meetDate,
+            ),
+            executor: executor,
+          );
+        } else {
+          int meetId = await _dbHelper.getOrCreateMeet(
+            SwimMeet(title: meetTitle, date: meetDate, course: course ?? rowCourse),
+            executor: executor,
+          );
 
-        await _dbHelper.insertEvent(
-          SwimEvent(meetId: meetId, swimmerId: finalSwimmerId, distance: distance, stroke: stroke, timeMs: timeMs),
-        );
+          await _dbHelper.insertEvent(
+            SwimEvent(meetId: meetId, swimmerId: finalSwimmerId, distance: distance, stroke: stroke, timeMs: timeMs),
+            executor: executor,
+          );
+        }
         importedCount++;
       } catch (e) {
         // Skip malformed row
@@ -547,7 +803,7 @@ class BulkImportService {
     return 'SCM'; // Default to SCM if unknown row-level course
   }
 
-  Future<int> _importMatrixCsv(List<List<dynamic>> rows, {int? targetSwimmerId, String? course}) async {
+  Future<int> _importMatrixCsv(List<List<dynamic>> rows, {int? targetSwimmerId, String? course, DatabaseExecutor? executor}) async {
     int dateRowIndex = -1;
     int meetRowIndex = -1;
     
@@ -629,12 +885,14 @@ class BulkImportService {
 
           int meetId = await _dbHelper.getOrCreateMeet(
             SwimMeet(title: meetTitle, date: date, course: course ?? 'LCM'),
+            executor: executor,
           );
 
           int timeMs = SwimEvent.parseTimeToMs(timeStr);
           if (timeMs > 0) {
             await _dbHelper.insertEvent(
               SwimEvent(meetId: meetId, swimmerId: swimmerId, distance: currentDistance, stroke: stroke, timeMs: timeMs),
+              executor: executor,
             );
             importedCount++;
           }
@@ -644,7 +902,7 @@ class BulkImportService {
     return importedCount;
   }
 
-  Future<int> _importSwimmer(Map<String, dynamic> swimmerData) async {
+  Future<int> _importSwimmer(Map<String, dynamic> swimmerData, {DatabaseExecutor? executor}) async {
     int importedCount = 0;
     final swimmerId = await _dbHelper.getOrCreateSwimmer(
       Swimmer(
@@ -655,17 +913,18 @@ class BulkImportService {
         nationality: swimmerData['nationality'],
         gender: swimmerData['gender'] ?? 'Female',
       ),
+      executor: executor,
     );
     
     if (swimmerData.containsKey('meets')) {
       for (var meetData in swimmerData['meets']) {
-        importedCount += await _importMeet(meetData, swimmerId);
+        importedCount += await _importMeet(meetData, swimmerId, executor: executor);
       }
     }
     return importedCount;
   }
 
-  Future<int> _importMeet(Map<String, dynamic> meetData, int swimmerId) async {
+  Future<int> _importMeet(Map<String, dynamic> meetData, int swimmerId, {DatabaseExecutor? executor}) async {
     int importedCount = 0;
     final meetId = await _dbHelper.getOrCreateMeet(
       SwimMeet(
@@ -673,6 +932,7 @@ class BulkImportService {
         date: DateTime.parse(meetData['date']),
         course: meetData['course'],
       ),
+      executor: executor,
     );
     
     if (meetData.containsKey('events')) {
@@ -684,10 +944,37 @@ class BulkImportService {
           stroke: _normalizeStroke(eventData['stroke']),
           timeMs: eventData['timeMs'],
         );
-        await _dbHelper.insertEvent(event);
+        await _dbHelper.insertEvent(event, executor: executor);
         importedCount++;
       }
     }
     return importedCount;
+  }
+
+  bool _isGenericSheetName(String name) {
+    final n = name.toLowerCase().trim();
+    return n.startsWith('sheet') || n == 'workbook' || n == 'results' || n == 'data' || n == 'swimmers' || n == 'team';
+  }
+
+  Map<String, String>? _parseName(String name) {
+    // Try "Surname, Firstname"
+    if (name.contains(',')) {
+      final parts = name.split(',');
+      if (parts.length >= 2) {
+        return {
+          'last': parts[0].trim(),
+          'first': parts[1].trim(),
+        };
+      }
+    }
+    // Try "Firstname Surname"
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      return {
+        'first': parts[0].trim(),
+        'last': parts.sublist(1).join(' ').trim(),
+      };
+    }
+    return null;
   }
 }

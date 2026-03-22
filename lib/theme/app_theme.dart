@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Dark Palette
-  static const Color background = Color(0xFF0F172A); // Deeper navy
-  static const Color surface = Color(0xFF1E293B);
-  static const Color cardBackground = Color(0xFF1E293B);
-  static const Color textPrimary = Color(0xFFF8FAFC);
-  static const Color textSecondary = Color(0xFF94A3B8);
-  static const Color border = Color(0xFF334155);
+  // Dark Palette (Slate Optimized)
+  static const Color background = Color(0xFF020617); // Deepest slate/navy (S950)
+  static const Color surface = Color(0xFF0F172A); // Slate 900
+  static const Color cardBackground = Color(0xFF1E293B); // Slate 800
+  static const Color textPrimary = Color(0xFFF8FAFC); // Slate 50
+  static const Color textSecondary = Color(0xFFCBD5E1); // Slate 300 (Higher contrast)
+  static const Color border = Color(0xFF334155); // Slate 700
 
   // Light Palette
   static const Color lightBackground = Color(0xFFF8FAFC);
@@ -18,9 +18,9 @@ class AppColors {
   static const Color lightBorder = Color(0xFFE2E8F0);
 
   // Common
-  static const Color primary = Color(0xFF3B82F6);
-  static const Color secondary = Color(0xFF64748B);
-  static const Color accent = Color(0xFF10B981);
+  static const Color primary = Color(0xFF60A5FA); // Blue 400 (Vibrant for dark)
+  static const Color secondary = Color(0xFF94A3B8); // Slate 400
+  static const Color accent = Color(0xFF34D399); // Emerald 400
   static const Color error = Color(0xFFEF4444);
 }
 
@@ -49,11 +49,10 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: AppColors.cardBackground,
-        elevation: 8,
-        shadowColor: Colors.black.withOpacity(0.4),
+        elevation: 0, // Flat design with border looks more modern
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.primary.withOpacity(0.1), width: 1),
+          side: BorderSide(color: AppColors.primary.withOpacity(0.12), width: 1.2),
         ),
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
       ),

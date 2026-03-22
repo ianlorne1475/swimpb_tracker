@@ -1,6 +1,7 @@
-FirstName,Surname,DOB,Nationality,MeetTitle,MeetDate,Course,Distance,Stroke,TimeMs,Club
-firstname,surname,2012-01-31 00:00:00,SG,DCSG Championship,2026-01-29 00:00:00,SCM,50,Backstroke,36730,DCSG
-firstname,surname,2012-01-31 00:00:00,SG,DCSG Championship,2026-01-29 00:00:00,SCM,100,Freestyle,70920,CLC
-firstname,surname,2012-01-31 00:00:00,SG,56th SNAG,2026-03-20 00:00:00,LCM,100,Butterfly,88890,CLC
-firstname,surname,2012-01-31 00:00:00,SG,56th SNAG,2026-03-20 00:00:00,LCM,50,Butterfly,36040,CLC
-firstname,surname,2012-01-31 00:00:00,SG,56th SNAG,2026-03-20 00:00:00,LCM,50,Freestyle,32490,CLC
+FirstName,Surname,Gender,DOB,Nationality,Club,MeetTitle,MeetDate,Course,Distance,Stroke,Time,DataType
+firstname,surname,Female,2012-01-31,SG,DCSG,DCSG Championship,2026-01-29,SCM,50,Backstroke,36.73,result
+firstname,surname,Female,2012-01-31,SG,CLC,DCSG Championship,2026-01-29,SCM,100,Freestyle,1:10.92,result
+firstname,surname,Female,2012-01-31,SG,CLC,56th SNAG,2026-03-20,LCM,100,Butterfly,1:28.89,result
+firstname,surname,Female,2012-01-31,SG,CLC,56th SNAG,2026-03-20,LCM,50,Butterfly,36.04,result
+firstname,surname,Female,2012-01-31,SG,CLC,56th SNAG,2026-03-20,LCM,50,Freestyle,32.49,result
+firstname,surname,Female,2012-01-31,SG,CLC,Season Goal,2026-06-01,LCM,50,Freestyle,31.50,goal

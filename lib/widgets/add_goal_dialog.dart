@@ -108,7 +108,7 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.timer_outlined),
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: TextInputType.text,
               autofocus: true,
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Please enter a time';

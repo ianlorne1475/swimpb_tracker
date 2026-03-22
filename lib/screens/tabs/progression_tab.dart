@@ -341,13 +341,13 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                   dashArray: [8, 4],
                                   label: HorizontalLineLabel(
                                     show: true,
-                                    alignment: Alignment.topRight,
-                                    padding: const EdgeInsets.only(right: 5, bottom: 5),
+                                    alignment: Alignment.topLeft,
+                                    padding: const EdgeInsets.only(left: 8, bottom: 4),
                                     style: TextStyle(
-                                      color: statusColor,
-                                      fontWeight: FontWeight.w800,
+                                      color: statusColor.withOpacity(0.85),
+                                      fontWeight: FontWeight.bold,
                                       fontSize: 10,
-                                      letterSpacing: 0.5,
+                                      backgroundColor: isDark ? Colors.black26 : Colors.white54,
                                     ),
                                     labelResolver: (line) {
                                       final duration = Duration(milliseconds: qt.timeMs);
@@ -373,13 +373,13 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                   dashArray: [4, 4],
                                   label: HorizontalLineLabel(
                                     show: true,
-                                    alignment: Alignment.topLeft,
-                                    padding: const EdgeInsets.only(left: 5, bottom: 5),
-                                    style: TextStyle(
-                                      color: hasMetGoal ? Colors.green : Colors.blue,
-                                      fontWeight: FontWeight.w800,
+                                    alignment: Alignment.bottomLeft,
+                                    padding: const EdgeInsets.only(left: 8, top: 4),
+                                      style: TextStyle(
+                                      color: Colors.blue.withOpacity(0.85),
+                                      fontWeight: FontWeight.bold,
                                       fontSize: 10,
-                                      letterSpacing: 0.5,
+                                      backgroundColor: isDark ? Colors.black26 : Colors.white54,
                                     ),
                                     labelResolver: (line) {
                                       final duration = Duration(milliseconds: goal.timeMs);

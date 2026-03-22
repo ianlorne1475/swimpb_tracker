@@ -38,6 +38,11 @@ class DatabaseHelper {
     );
   }
 
+  Future<T> transaction<T>(Future<T> Function(Transaction txn) action) async {
+    final db = await database;
+    return await db.transaction(action);
+  }
+
   Future _onCreate(Database db, int version) async {
     await _createTablesIfNotExist(db);
   }
@@ -136,8 +141,8 @@ class DatabaseHelper {
   }
 
   // Swimmer CRUD
-  Future<int> insertSwimmer(Swimmer swimmer) async {
-    Database db = await database;
+  Future<int> insertSwimmer(Swimmer swimmer, {DatabaseExecutor? executor}) async {
+    DatabaseExecutor db = executor ?? await database;
     return await db.insert('swimmers', swimmer.toMap());
   }
 
@@ -178,8 +183,8 @@ class DatabaseHelper {
   }
 
   // Meet CRUD
-  Future<int> insertMeet(SwimMeet meet) async {
-    Database db = await database;
+  Future<int> insertMeet(SwimMeet meet, {DatabaseExecutor? executor}) async {
+    DatabaseExecutor db = executor ?? await database;
     return await db.insert('meets', meet.toMap());
   }
 
@@ -194,8 +199,8 @@ class DatabaseHelper {
   }
 
   // Event CRUD
-  Future<int> insertEvent(SwimEvent event) async {
-    Database db = await database;
+  Future<int> insertEvent(SwimEvent event, {DatabaseExecutor? executor}) async {
+    DatabaseExecutor db = executor ?? await database;
     return await db.insert(
       'events', 
       event.toMap(),
@@ -346,23 +351,23 @@ class DatabaseHelper {
     return result.first['count'] as int;
   }
 
-  Future<int> getOrCreateSwimmer(Swimmer swimmer) async {
-    final db = await database;
+  Future<int> getOrCreateSwimmer(Swimmer swimmer, {DatabaseExecutor? executor}) async {
+    final db = executor ?? await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'swimmers',
       where: 'firstName = ? AND surname = ?',
       whereArgs: [swimmer.firstName, swimmer.surname],
     );
-
+  
     if (maps.isNotEmpty) {
       return maps.first['id'] as int;
     } else {
-      return await insertSwimmer(swimmer);
+      return await insertSwimmer(swimmer, executor: db);
     }
   }
 
-  Future<int> getOrCreateMeet(SwimMeet meet) async {
-    final db = await database;
+  Future<int> getOrCreateMeet(SwimMeet meet, {DatabaseExecutor? executor}) async {
+    final db = executor ?? await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'meets',
       where: 'title = ? AND date = ? AND course = ?',
@@ -372,7 +377,7 @@ class DatabaseHelper {
     if (maps.isNotEmpty) {
       return maps.first['id'] as int;
     } else {
-      return await insertMeet(meet);
+      return await insertMeet(meet, executor: db);
     }
   }
 
@@ -441,21 +446,35 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getEventsForExport(int swimmerId, {String? course}) async {
     Database db = await database;
     String query = '''
-      SELECT s.firstName, s.surname, s.dob, s.nationality, s.club,
+      SELECT s.firstName, s.surname, s.dob, s.nationality, s.club, s.photoPath,
              m.title as meetTitle, m.date as meetDate, m.course,
-             e.distance, e.stroke, e.timeMs
+             e.distance, e.stroke, e.timeMs, 'Result' as dataType
       FROM events e
       JOIN swimmers s ON e.swimmerId = s.id
       JOIN meets m ON e.meetId = m.id
       WHERE e.swimmerId = ?
     ''';
+    
     List<dynamic> args = [swimmerId];
-    if (course != null) {
+    if (course != null && course != 'All') {
       query += ' AND m.course = ?';
       args.add(course);
     }
+    
     query += ' ORDER BY m.date DESC, e.stroke ASC, e.distance ASC';
     return await db.rawQuery(query, args);
+  }
+
+  Future<List<Map<String, dynamic>>> getGoalsForExport(int swimmerId) async {
+    Database db = await database;
+    return await db.rawQuery('''
+      SELECT s.firstName, s.surname, s.dob, s.nationality, s.club, s.photoPath,
+             'Goal' as meetTitle, g.targetDate as meetDate, g.course,
+             g.distance, g.stroke, g.timeMs, 'Goal' as dataType
+      FROM swimmer_goals g
+      JOIN swimmers s ON g.swimmerId = s.id
+      WHERE g.swimmerId = ?
+    ''', [swimmerId]);
   }
 
   Future<void> deleteMeetForSwimmer(int meetId, int swimmerId) async {
@@ -494,8 +513,8 @@ class DatabaseHelper {
   }
 
   // Goals CRUD
-  Future<int> insertGoal(SwimmerGoal goal) async {
-    Database db = await database;
+  Future<int> insertGoal(SwimmerGoal goal, {DatabaseExecutor? executor}) async {
+    DatabaseExecutor db = executor ?? await database;
     return await db.insert(
       'swimmer_goals', 
       goal.toMap(),
