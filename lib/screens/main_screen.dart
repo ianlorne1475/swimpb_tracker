@@ -306,6 +306,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('All data cleared successfully.')),
       );
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
