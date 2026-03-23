@@ -30,4 +30,4 @@ This document tracks all changes, enhancements, and planned features for the Swi
 - [ ] **Sharing Feature**: Implement "Share with a Friend" in the Settings menu (currently a placeholder).
 - [ ] **Service Layer Alignment**: Refactor `ThemeService` and `PreferenceService` for better architectural consistency.
 - [ ] **Cloud Sync & Firebase**: Upgrade the app with Firebase for secure cloud backup, team synchronization, and advanced crashlytics.
-- [ ] **Advanced Analytics**: Add more detailed swim progression metrics and cross-swimmer comparisons.
+- [ ] **Advanced Analytics**: Add more detailed swim progression metrics, cross-swimmer comparisons, and **Block Time** (swimmer reaction time off the start blocks).
