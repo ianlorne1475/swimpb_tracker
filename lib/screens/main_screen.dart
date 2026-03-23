@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../models/event.dart';
@@ -433,6 +434,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   context: context,
                   builder: (context) => const FeedbackDialog(),
                 );
+              } else if (value == 'exit') {
+                SystemNavigator.pop();
               }
             },
             itemBuilder: (context) => [
@@ -539,6 +542,17 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     Icon(Icons.delete_forever_outlined, size: 20, color: Colors.red),
                     SizedBox(width: 8),
                     Text('Clear All Data', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'exit',
+                child: Row(
+                  children: [
+                    Icon(Icons.power_settings_new_rounded, size: 20, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Exit App', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
