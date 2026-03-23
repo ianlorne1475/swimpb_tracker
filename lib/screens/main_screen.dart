@@ -166,8 +166,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     }
   }
 
-
-  }
   
   void _openSettings() async {
     await Navigator.of(context).push(
