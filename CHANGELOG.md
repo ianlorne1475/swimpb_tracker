@@ -27,9 +27,24 @@ This document tracks all changes, enhancements, and planned features for the Swi
 ---
 
 ## Future Enhancements & Roadmap
+
+### 📱 User Interface & Experience
 - [ ] **Sharing Feature**: Implement "Share with a Friend" in the Settings menu (currently a placeholder).
 - [ ] **Service Layer Alignment**: Refactor `ThemeService` and `PreferenceService` for better architectural consistency.
-- [ ] **Cloud Sync & Firebase**: Upgrade the app with Firebase for secure cloud backup, team synchronization, and advanced crashlytics.
-- [ ] **User Authentication**: Implement secure login via **Google, Facebook, and standard Email** to enable multi-device sync and personalized profiles.
-- [ ] **Wearable Sync**: Integrate with **Garmin, Apple Watch, and Whoop** to automatically pull in training data, heart rate, and lap times.
-- [ ] **Advanced Analytics**: Add more detailed swim progression metrics, cross-swimmer comparisons, and **Block Time** (swimmer reaction time off the start blocks).
+- [ ] **Smart Notifications**: Goal-proximity alerts and automatic "Qualification Watch" notifications for major meets.
+
+### ☁️ Cloud & Connectivity
+- [ ] **Cloud Sync & Firebase**: Upgrade with Firebase for secure backup, team synchronization, and advanced crashlytics.
+- [ ] **User Authentication**: Secure login via **Google, Facebook, and Email** for multi-device sync and personalized profiles.
+- [ ] **Wearable Sync**: Integrate with **Garmin, Apple Watch, and Whoop** to automate training and heart rate data import.
+
+### 📊 Performance & Coaching
+- [ ] **Training Logbook**: Track daily yardage/meters and **RPE** (Rate of Perceived Exertion) to monitor fatigue.
+- [ ] **Deep Analytics**: Detailed **Split Analysis** for races and stroke-efficiency metrics (Stroke Count/Rate).
+- [ ] **Block Time**: Dedicated tracking for swimmer reaction time off the start blocks.
+- [ ] **Advanced Comparisons**: Technical tools for cross-swimmer and multi-season progression analysis.
+
+### 🏆 Planning & Community
+- [ ] **Season Planner**: Group meets into seasons and set a primary "Target Meet" with a **Taper Visualizer**.
+- [ ] **Team Leaderboards**: Permission-based club rankings and squad performance tracking.
+- [ ] **Coach/Parent Portal**: Secure, view-only access for coaches to monitor multiple swimmers' progress in real-time.
