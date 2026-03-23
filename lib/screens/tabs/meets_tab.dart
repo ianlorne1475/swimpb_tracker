@@ -284,8 +284,16 @@ class _MeetsTabState extends State<MeetsTab> {
                   children: events.map((event) => ListTile(
                     title: Text(
                       '${event.distance}m ${event.stroke}',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                     ),
+                    subtitle: event.club != null ? Text(
+                      event.club!.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.primary : AppColors.lightTextPrimary.withOpacity(0.7),
+                      ),
+                    ) : null,
                     trailing: Text(
                       event.formattedTime,
                       style: TextStyle(
@@ -295,7 +303,7 @@ class _MeetsTabState extends State<MeetsTab> {
                         letterSpacing: -0.5,
                       ),
                     ),
-                    dense: true,
+                    dense: false,
                   )).toList(),
                 ),
               );
