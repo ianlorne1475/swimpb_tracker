@@ -40,6 +40,7 @@ This document tracks all changes, enhancements, and planned features for the Swi
 
 ### 📊 Performance & Coaching
 - [ ] **Training Logbook**: Track daily yardage/meters and **RPE** (Rate of Perceived Exertion) to monitor fatigue.
+- [ ] **Training Set Builder**: Generate custom swim sets based on available pool time and specific stroke techniques to improve.
 - [ ] **Deep Analytics**: Detailed **Split Analysis** for races and stroke-efficiency metrics (Stroke Count/Rate).
 - [ ] **Block Time**: Dedicated tracking for swimmer reaction time off the start blocks.
 - [ ] **Advanced Comparisons**: Technical tools for cross-swimmer and multi-season progression analysis.
