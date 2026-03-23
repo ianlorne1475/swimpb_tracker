@@ -324,7 +324,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           if (_swimmers.isNotEmpty)
             IconButton(
               icon: Icon(
-                Icons.settings_outlined,
+                Icons.menu_rounded,
                 color: Theme.of(context).brightness == Brightness.dark 
                     ? AppColors.textSecondary 
                     : AppColors.lightTextSecondary,
