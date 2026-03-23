@@ -453,7 +453,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 value: 'import_data',
                 child: Row(
                   children: [
-                    Icon(Icons.person_add_alt_1_outlined, size: 20),
+                    Icon(Icons.file_upload_outlined, size: 20),
                     SizedBox(width: 8),
                     Text('Import Individual or Team Data'),
                   ],
@@ -463,7 +463,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 value: 'export_data',
                 child: Row(
                   children: [
-                    Icon(Icons.download_for_offline, size: 20),
+                    Icon(Icons.file_download_outlined, size: 20),
                     SizedBox(width: 8),
                     Text('Export Individual or Team Data'),
                   ],
