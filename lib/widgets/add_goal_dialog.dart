@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/goal.dart';
 import '../theme/app_theme.dart';
+import '../utils/time_utils.dart';
 
 class AddGoalDialog extends StatefulWidget {
   final int swimmerId;
@@ -43,34 +44,7 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
     super.dispose();
   }
 
-  int? _parseTimeToMs(String value) {
-    if (value.isEmpty) return null;
-    
-    // Support formats:
-    // ss.hh
-    // m:ss.hh
-    // mm:ss.hh
-    
-    try {
-      if (value.contains(':')) {
-        final parts = value.split(':');
-        final minutes = int.parse(parts[0]);
-        final secondParts = parts[1].split('.');
-        final seconds = int.parse(secondParts[0]);
-        final hundredths = secondParts.length > 1 ? int.parse(secondParts[1].padRight(2, '0').substring(0, 2)) : 0;
-        
-        return (minutes * 60 * 1000) + (seconds * 1000) + (hundredths * 10);
-      } else {
-        final parts = value.split('.');
-        final seconds = int.parse(parts[0]);
-        final hundredths = parts.length > 1 ? int.parse(parts[1].padRight(2, '0').substring(0, 2)) : 0;
-        
-        return (seconds * 1000) + (hundredths * 10);
-      }
-    } catch (e) {
-      return null;
-    }
-  }
+  // Redundant helper removed in favor of TimeUtils
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +86,8 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
               autofocus: true,
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Please enter a time';
-                if (_parseTimeToMs(value) == null) return 'Invalid format (e.g. 1:05.20)';
+                final ms = TimeUtils.parseTimeToMs(value);
+                if (ms == 0 && value.isNotEmpty) return 'Invalid format (e.g. 1:05.20)';
                 return null;
               },
             ),
@@ -163,7 +138,7 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
         ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              final timeMs = _parseTimeToMs(_timeController.text);
+              final timeMs = TimeUtils.parseTimeToMs(_timeController.text);
               if (timeMs != null) {
                 final goal = SwimmerGoal(
                   id: widget.existingGoal?.id,

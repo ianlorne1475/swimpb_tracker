@@ -14,19 +14,6 @@ class PBCertificate extends StatelessWidget {
     required this.event,
   });
 
-  static String formatTime(int timeMs) {
-    final duration = Duration(milliseconds: timeMs);
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    final hundredths = (timeMs % 1000) ~/ 10;
-    
-    if (minutes > 0) {
-      return '$minutes:${seconds.toString().padLeft(2, '0')}.${hundredths.toString().padLeft(2, '0')}';
-    } else {
-      return '$seconds.${hundredths.toString().padLeft(2, '0')}';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final dateStr = event.formattedDate;

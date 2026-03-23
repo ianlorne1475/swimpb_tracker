@@ -52,6 +52,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   int _lcmMeetCount = 0;
   int _resultCount = 0;
   int _refreshCounter = 0;
+  final ValueNotifier<List<Swimmer>> _swimmersNotifier = ValueNotifier<List<Swimmer>>([]);
+  final ValueNotifier<Set<int>> _swimmerIdsWithResultsNotifier = ValueNotifier<Set<int>>({});
   
   int _selectedDistance = 50;
   String _selectedStroke = 'Butterfly';
@@ -69,6 +71,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   @override
   void dispose() {
     _tabController.dispose();
+    _swimmersNotifier.dispose();
+    _swimmerIdsWithResultsNotifier.dispose();
+    // _searchController.dispose(); // This line is commented out because _searchController is not declared in the provided code.
     super.dispose();
   }
 
@@ -76,6 +81,10 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
   Future<void> _loadSwimmers({int? targetId}) async {
     final swimmers = await _dbHelper.getSwimmers();
+    final idsWithResults = await _dbHelper.getSwimmerIdsWithResults();
+    _swimmersNotifier.value = swimmers;
+    _swimmerIdsWithResultsNotifier.value = idsWithResults;
+    
     setState(() {
       _swimmers = swimmers;
       
@@ -111,14 +120,22 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       final scmCount = await _dbHelper.getScmMeetCountBySwimmer(id);
       final lcmCount = await _dbHelper.getLcmMeetCountBySwimmer(id);
       final eventCount = await _dbHelper.getEventCountBySwimmer(id);
+      final idsWithResults = await _dbHelper.getSwimmerIdsWithResults();
+      _swimmerIdsWithResultsNotifier.value = idsWithResults;
       
-      setState(() {
-        _meetCount = count;
-        _scmMeetCount = scmCount;
-        _lcmMeetCount = lcmCount;
-        _resultCount = eventCount;
-        _refreshCounter++;
-      });
+      if (mounted) {
+        Future.microtask(() {
+          if (mounted) {
+            setState(() {
+              _meetCount = count;
+              _scmMeetCount = scmCount;
+              _lcmMeetCount = lcmCount;
+              _resultCount = eventCount;
+              _refreshCounter++;
+            });
+          }
+        });
+      }
     }
   }
 
@@ -127,7 +144,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => SettingsScreen(
-          swimmers: _swimmers,
+          swimmersNotifier: _swimmersNotifier,
+          swimmerIdsWithResultsNotifier: _swimmerIdsWithResultsNotifier,
           selectedSwimmer: _selectedSwimmer,
           onAddSwimmer: () async {
             final result = await showDialog(
@@ -144,35 +162,24 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           onDeleteRaceData: _handleDeleteRaceData,
           onClearAllData: _handleClearAllData,
           onDeleteSwimmer: (swimmer) async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Delete Swimmer'),
-                content: Text('Are you sure you want to permanently delete ${swimmer.fullName} and all their data?'),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    child: const Text('Delete'),
-                  ),
-                ],
-              ),
-            );
-            
-            if (confirmed == true) {
-              await _dbHelper.deleteSwimmer(swimmer.id!);
-              if (_selectedSwimmer?.id == swimmer.id) {
-                setState(() {
+            await _dbHelper.deleteSwimmer(swimmer.id!);
+            await _loadSwimmers();
+            if (mounted) {
+              setState(() {
+                if (_selectedSwimmer?.id == swimmer.id) {
                   _selectedSwimmer = null;
                   _meetCount = 0;
-                });
-              }
-              _loadSwimmers();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Swimmer ${swimmer.fullName} deleted.')),
-                );
+                  _scmMeetCount = 0;
+                  _lcmMeetCount = 0;
+                  _resultCount = 0;
+                }
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Swimmer ${swimmer.fullName} deleted.')),
+              );
+              
+              if (_swimmersNotifier.value.isEmpty) {
+                Navigator.of(context).popUntil((route) => route.isFirst);
               }
             }
           },
@@ -230,89 +237,40 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   }
 
 
-  Future<void> _handleDeleteRaceData() async {
-    Swimmer? targetSwimmer = _selectedSwimmer;
+  Future<void> _handleDeleteRaceData(Swimmer? swimmer) async {
+    Swimmer? targetSwimmer = swimmer ?? _selectedSwimmer;
+    if (targetSwimmer == null) return;
     String targetCourse = 'All';
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Delete Race Data'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('This will delete ALL race results (SCM & LCM) for the selected swimmer. This cannot be undone.'),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<Swimmer>(
-                value: targetSwimmer,
-                decoration: const InputDecoration(labelText: 'Select Swimmer'),
-                items: _swimmers.map((s) => DropdownMenuItem(value: s, child: Text(s.fullName))).toList(),
-                onChanged: (s) => setDialogState(() => targetSwimmer = s),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete Data'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed == true && targetSwimmer != null) {
-      await _dbHelper.deleteEventsBySwimmerAndCourse(targetSwimmer!.id!, targetCourse);
-      _loadSwimmerData();
-      setState(() {});
-      if (mounted) {
-        final message = targetCourse == 'All' 
-            ? 'Deleted all results for ${targetSwimmer!.fullName}.'
-            : 'Deleted $targetCourse results for ${targetSwimmer!.fullName}.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
-      }
+    await _dbHelper.deleteEventsBySwimmerAndCourse(targetSwimmer.id!, targetCourse);
+    await _loadSwimmerData();
+    setState(() {});
+    if (mounted) {
+      final message = targetCourse == 'All' 
+          ? 'Deleted all results for ${targetSwimmer.fullName}.'
+          : 'Deleted $targetCourse results for ${targetSwimmer.fullName}.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     }
   }
 
   Future<void> _handleClearAllData() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear All Data'),
-        content: const Text('Are you sure you want to delete all swimmers, meets, and events? This action cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete All'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _dbHelper.clearAllData();
-      setState(() {
-        _selectedSwimmer = null;
-        _meetCount = 0;
-        _scmMeetCount = 0;
-        _lcmMeetCount = 0;
-        _resultCount = 0;
-      });
-      await _loadSwimmers();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All data cleared successfully.')),
-        );
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
+    await _dbHelper.clearAllData();
+    setState(() {
+      _selectedSwimmer = null;
+      _meetCount = 0;
+      _scmMeetCount = 0;
+      _lcmMeetCount = 0;
+      _resultCount = 0;
+    });
+    await _loadSwimmers();
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All data cleared successfully.')),
+      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
 
@@ -801,7 +759,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 final age = _selectedSwimmer!.calculateAge();
                 final standards = await _dbHelper.getStandardsForSwimmer(age, _selectedSwimmer!.gender ?? 'Male');
                 
-                final pdfBytes = await ReportService.generateNationalQTReport(_selectedSwimmer!, events, standards);
+                final pdfBytes = await ReportService().generateNationalQTReport(_selectedSwimmer!, events, standards);
                 final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
                 await Printing.layoutPdf(
                   onLayout: (format) async => pdfBytes,
@@ -818,7 +776,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 final goals = await _dbHelper.getGoalsBySwimmer(_selectedSwimmer!.id!);
                 final allEvents = await _dbHelper.getEventsBySwimmer(_selectedSwimmer!.id!);
                 
-                final pdfBytes = await ReportService.generatePersonalGoalsReport(_selectedSwimmer!, goals, allEvents);
+                final pdfBytes = await ReportService().generatePersonalGoalsReport(_selectedSwimmer!, goals, allEvents);
                 final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
                 await Printing.layoutPdf(
                   onLayout: (format) async => pdfBytes,
@@ -833,7 +791,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               onTap: () async {
                 Navigator.pop(context);
                 final events = await _dbHelper.getEventsBySwimmer(_selectedSwimmer!.id!);
-                final pdfBytes = await ReportService.generatePersonalBestsReport(_selectedSwimmer!, events);
+                final pdfBytes = await ReportService().generatePersonalBestsReport(_selectedSwimmer!, events);
                 final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
                 await Printing.layoutPdf(
                   onLayout: (format) async => pdfBytes,
@@ -904,7 +862,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       context: context,
     );
 
-    final pdfBytes = await ReportService.generateCertificatePdf(imageBytes);
+    final pdfBytes = await ReportService().generateCertificatePdf(imageBytes);
     final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
     await Printing.layoutPdf(
       onLayout: (format) async => pdfBytes,

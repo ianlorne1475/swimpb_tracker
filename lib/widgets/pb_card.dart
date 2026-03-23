@@ -5,6 +5,7 @@ import '../models/qualifying_time.dart';
 import '../theme/app_theme.dart';
 import 'swim_stroke_icon.dart';
 import '../models/goal.dart';
+import '../utils/time_utils.dart';
 
 class PBCard extends StatelessWidget {
   final SwimEvent event;
@@ -137,7 +138,7 @@ class PBCard extends StatelessWidget {
                       ),
                       if (targetStandard != null && showQTLabel)
                         Text(
-                          'QT: ${formatTime(targetStandard!.timeMs)} (${targetStandard!.standardName})',
+                          'QT: ${TimeUtils.formatTime(targetStandard!.timeMs)} (${targetStandard!.standardName})',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
@@ -262,19 +263,6 @@ class PBCard extends StatelessWidget {
       size: 18,
       color: AppColors.primary,
     );
-  }
-
-  static String formatTime(int timeMs) {
-    final duration = Duration(milliseconds: timeMs);
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    final hundredths = (timeMs % 1000) ~/ 10;
-    
-    if (minutes > 0) {
-      return '$minutes:${seconds.toString().padLeft(2, '0')}.${hundredths.toString().padLeft(2, '0')}';
-    } else {
-      return '$seconds.${hundredths.toString().padLeft(2, '0')}';
-    }
   }
 
   Widget _buildGoalRow(bool isDark) {

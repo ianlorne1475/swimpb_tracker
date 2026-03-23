@@ -13,6 +13,8 @@ import '../models/swimmer.dart';
 import '../models/meet.dart';
 import '../models/event.dart';
 import '../models/goal.dart';
+import '../models/qualifying_time.dart';
+import '../utils/time_utils.dart';
 
 class BulkImportService {
   final DatabaseHelper _dbHelper;
@@ -327,7 +329,7 @@ class BulkImportService {
             swimmerId: swimmerId,
             distance: res['distance'],
             stroke: res['stroke'],
-            timeMs: SwimEvent.parseTimeToMs(res['time']),
+            timeMs: TimeUtils.parseTimeToMs(res['time']),
           );
           await _dbHelper.insertEvent(event, executor: txn);
           importedCount++;
@@ -752,7 +754,7 @@ class BulkImportService {
 
         final distance = int.tryParse(row[distIdx].toString()) ?? 50;
         final stroke = _normalizeStroke(row[strokeIdx].toString());
-        final timeMs = SwimEvent.parseTimeToMs(row[timeMsIdx].toString());
+        final timeMs = TimeUtils.parseTimeToMs(row[timeMsIdx].toString());
         
         final dataType = colMap.containsKey('datatype') && row.length > colMap['datatype']! 
             ? row[colMap['datatype']!].toString().toLowerCase().trim() 
@@ -898,7 +900,7 @@ class BulkImportService {
             executor: executor,
           );
 
-          int timeMs = SwimEvent.parseTimeToMs(timeStr);
+          int timeMs = TimeUtils.parseTimeToMs(timeStr);
           if (timeMs > 0) {
             await _dbHelper.insertEvent(
               SwimEvent(meetId: meetId, swimmerId: swimmerId, distance: currentDistance, stroke: stroke, timeMs: timeMs),

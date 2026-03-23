@@ -371,6 +371,12 @@ class DatabaseHelper {
     return result.first['count'] as int;
   }
 
+  Future<Set<int>> getSwimmerIdsWithResults() async {
+    Database db = await database;
+    final result = await db.rawQuery('SELECT DISTINCT swimmerId FROM events');
+    return result.map((row) => row['swimmerId'] as int).toSet();
+  }
+
   Future<int> getOrCreateSwimmer(Swimmer swimmer, {DatabaseExecutor? executor}) async {
     final db = executor ?? await database;
     final List<Map<String, dynamic>> maps = await db.query(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../utils/time_utils.dart';
 import '../database_helper.dart';
 import '../models/meet.dart';
 import '../models/event.dart';
@@ -333,7 +334,7 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
                     distance: entry.distance,
                     stroke: entry.stroke,
                     course: _course,
-                    timeMs: _parseTimeToMs(entry.timeStr),
+                    timeMs: TimeUtils.parseTimeToMs(entry.timeStr),
                     date: _date.toIso8601String(),
                     club: _clubController.text.trim().isNotEmpty ? _clubController.text.trim() : null,
                   );
@@ -375,30 +376,6 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
     );
   }
 
-  int _parseTimeToMs(String timeStr) {
-    try {
-      final clean = timeStr.trim().replaceAll(':', '.');
-      final parts = clean.split('.');
-      
-      if (parts.length >= 3) {
-        final m = int.parse(parts[parts.length - 3]);
-        final s = int.parse(parts[parts.length - 2]);
-        final hStr = parts[parts.length - 1];
-        final h = int.parse(hStr.padRight(2, '0').substring(0, 2));
-        return (m * 60000) + (s * 1000) + (h * 10);
-      } else if (parts.length == 2) {
-        final s = int.parse(parts[0]);
-        final hStr = parts[1];
-        final h = int.parse(hStr.padRight(2, '0').substring(0, 2));
-        return (s * 1000) + (h * 10);
-      } else if (parts.length == 1) {
-        return (int.tryParse(parts[0]) ?? 0) * 1000;
-      }
-      return 0;
-    } catch (e) {
-      return 0;
-    }
-  }
 
   @override
   void dispose() {
