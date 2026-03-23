@@ -30,6 +30,7 @@ import '../services/bulk_import_service.dart';
 import '../services/bulk_export_service.dart';
 import '../services/qualifying_times_service.dart';
 import '../services/theme_service.dart';
+import 'settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -166,23 +167,65 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   }
 
 
-  void _showAppHelp() {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        insetPadding: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.8,
-            maxWidth: 500,
-          ),
-          child: const SingleChildScrollView(
-            child: HelpReleaseNotesTile(),
-          ),
+  }
+  
+  void _openSettings() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SettingsScreen(
+          swimmers: _swimmers,
+          selectedSwimmer: _selectedSwimmer,
+          onAddSwimmer: () async {
+            final result = await showDialog(
+              context: context,
+              builder: (context) => const SwimmerDialog(),
+            );
+            if (result is int) {
+              _loadSwimmers(targetId: result);
+            }
+          },
+          onImportData: _handleImportData,
+          onExportData: _handleExportData,
+          onReports: _showReportsDialog,
+          onDeleteRaceData: _handleDeleteRaceData,
+          onClearAllData: _handleClearAllData,
+          onDeleteSwimmer: (swimmer) async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Delete Swimmer'),
+                content: Text('Are you sure you want to permanently delete ${swimmer.fullName} and all their data?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    child: const Text('Delete'),
+                  ),
+                ],
+              ),
+            );
+            
+            if (confirmed == true) {
+              await _dbHelper.deleteSwimmer(swimmer.id!);
+              if (_selectedSwimmer?.id == swimmer.id) {
+                setState(() {
+                  _selectedSwimmer = null;
+                  _meetCount = 0;
+                });
+              }
+              _loadSwimmers();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Swimmer ${swimmer.fullName} deleted.')),
+                );
+              }
+            }
+          },
         ),
       ),
     );
+    _loadSwimmers(); // Final refresh when returning from settings
   }
 
 
@@ -325,239 +368,15 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         centerTitle: true,
         actions: [
           if (_swimmers.isNotEmpty)
-            PopupMenuButton<String>(
+            IconButton(
               icon: Icon(
-                Icons.menu, 
+                Icons.settings_outlined,
                 color: Theme.of(context).brightness == Brightness.dark 
                     ? AppColors.textSecondary 
                     : AppColors.lightTextSecondary,
               ),
-            onSelected: (value) async {
-              if (value == 'add_swimmer') {
-                final result = await showDialog(
-                  context: context,
-                  builder: (context) => const SwimmerDialog(),
-                );
-                if (result is int) {
-                  _loadSwimmers(targetId: result);
-                }
-              } else if (value == 'delete_swimmer') {
-                if (_swimmers.isEmpty) return;
-                
-                Swimmer? swimmerToDelete = _selectedSwimmer ?? _swimmers.first;
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => StatefulBuilder(
-                    builder: (context, setDialogState) {
-                      return AlertDialog(
-                        title: const Text('Delete Swimmer'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Select a swimmer to permanently delete:'),
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: AppColors.lightBorder),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<Swimmer>(
-                                  value: swimmerToDelete,
-                                  isExpanded: true,
-                                  items: _swimmers.map((s) => DropdownMenuItem(
-                                    value: s,
-                                    child: Text(s.fullName),
-                                  )).toList(),
-                                  onChanged: (v) => setDialogState(() => swimmerToDelete = v),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            if (swimmerToDelete != null)
-                              Text(
-                                'Warning: All race data and meets for ${swimmerToDelete!.fullName} will be lost forever.',
-                                style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w500),
-                              ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                          ElevatedButton(
-                            onPressed: swimmerToDelete == null ? null : () => Navigator.pop(context, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                            ),
-                            child: const Text('Delete'),
-                          ),
-                        ],
-                      );
-                    }
-                  ),
-                );
-                
-                if (confirmed == true && swimmerToDelete != null) {
-                  await _dbHelper.deleteSwimmer(swimmerToDelete!.id!);
-                  if (_selectedSwimmer?.id == swimmerToDelete!.id) {
-                    setState(() {
-                      _selectedSwimmer = null;
-                      _meetCount = 0;
-                    });
-                  }
-                  _loadSwimmers();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Swimmer ${swimmerToDelete!.fullName} deleted.')),
-                    );
-                  }
-                }
-              } else if (value == 'import_data') {
-                _handleImportData();
-              } else if (value == 'clear_all') {
-                _handleClearAllData();
-              } else if (value == 'delete_race_data') {
-                _handleDeleteRaceData();
-              } else if (value == 'toggle_theme') {
-                ThemeService().toggleTheme();
-              } else if (value == 'app_help') {
-                _showAppHelp();
-              } else if (value == 'reports') {
-                _showReportsDialog();
-              } else if (value == 'export_data') {
-                _handleExportData();
-              } else if (value == 'feedback') {
-                showDialog(
-                  context: context,
-                  builder: (context) => const FeedbackDialog(),
-                );
-              } else if (value == 'exit') {
-                SystemNavigator.pop();
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'add_swimmer',
-                child: Row(
-                  children: [
-                    Icon(Icons.person_add_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Add Swimmer'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'import_data',
-                child: Row(
-                  children: [
-                    Icon(Icons.file_upload_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Import Individual or Team Data'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'export_data',
-                child: Row(
-                  children: [
-                    Icon(Icons.file_download_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Export Individual or Team Data'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(height: 1),
-              PopupMenuItem(
-                value: 'toggle_theme',
-                child: Row(
-                  children: [
-                    Icon(
-                      ThemeService().isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(ThemeService().isDarkMode ? 'Light Mode' : 'Dark Mode'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'reports',
-                child: Row(
-                  children: [
-                    Icon(Icons.assessment_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Reports'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'app_help',
-                child: Row(
-                  children: [
-                    Icon(Icons.help_outline_rounded, size: 20),
-                    const SizedBox(width: 8),
-                    Text('App Help'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'feedback',
-                child: Row(
-                  children: [
-                    Icon(Icons.feedback_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Feedback'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              if (_swimmers.isNotEmpty)
-                const PopupMenuItem(
-                  value: 'delete_swimmer',
-                  child: Row(
-                    children: [
-                      Icon(Icons.person_remove_outlined, size: 20),
-                      SizedBox(width: 8),
-                      Text('Delete Swimmer'),
-                    ],
-                  ),
-                ),
-              const PopupMenuItem(
-                value: 'delete_race_data',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_sweep_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Delete Race Data'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'clear_all',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_forever_outlined, size: 20, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Clear All Data', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'exit',
-                child: Row(
-                  children: [
-                    Icon(Icons.power_settings_new_rounded, size: 20, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Exit App', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ],
-          ),
+              onPressed: _openSettings,
+            ),
           const SizedBox(width: 8),
         ],
       ),
