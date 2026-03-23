@@ -1,0 +1,17 @@
+Run zsh shell
+
+Chsh -s /bin/zsh
+
+Check mdns status
+
+adb mdns check - might need to restart add server, adb kill-server, adb start-server
+
+Check which adb devices are running
+
+Set up pairing
+
+adb pair ip: port (from phone pop up)
+
+Connect devices
+
+adb connect ip:port (Mac side - top of pairing window on phone) 
