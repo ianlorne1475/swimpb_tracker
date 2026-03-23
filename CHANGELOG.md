@@ -29,5 +29,5 @@ This document tracks all changes, enhancements, and planned features for the Swi
 ## Future Enhancements & Roadmap
 - [ ] **Sharing Feature**: Implement "Share with a Friend" in the Settings menu (currently a placeholder).
 - [ ] **Service Layer Alignment**: Refactor `ThemeService` and `PreferenceService` for better architectural consistency.
+- [ ] **Cloud Sync & Firebase**: Upgrade the app with Firebase for secure cloud backup, team synchronization, and advanced crashlytics.
 - [ ] **Advanced Analytics**: Add more detailed swim progression metrics and cross-swimmer comparisons.
-- [ ] **Cloud Sync**: Research secure cloud backup options for team synchronization.
