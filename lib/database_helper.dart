@@ -318,6 +318,21 @@ class DatabaseHelper {
     return List.generate(maps.length, (i) => SwimEvent.fromMap(maps[i]));
   }
 
+  Future<String?> getRecentClubForSwimmer(int swimmerId) async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT e.club
+      FROM events e
+      JOIN meets m ON e.meetId = m.id
+      WHERE e.swimmerId = ? AND e.club IS NOT NULL AND e.club != ''
+      ORDER BY m.date DESC, e.id DESC
+      LIMIT 1
+    ''', [swimmerId]);
+    
+    if (maps.isEmpty) return null;
+    return maps.first['club'] as String?;
+  }
+
   Future<int> getMeetCountBySwimmer(int swimmerId) async {
     Database db = await database;
     final result = await db.rawQuery('''

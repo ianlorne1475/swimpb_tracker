@@ -594,39 +594,40 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       return;
     }
 
-    // Check if all swimmers have the same team name set
-    final clubs = _swimmers
-        .map((s) => s.club?.trim())
-        .where((c) => c != null && c.isNotEmpty)
-        .toSet();
+    // NEW: Check most recent clubs from meet history
+    final List<String?> recentClubs = [];
+    for (var s in _swimmers) {
+      recentClubs.add(await _dbHelper.getRecentClubForSwimmer(s.id!));
+    }
     
-    final bool allSameTeam = clubs.length == 1 && _swimmers.every((s) => s.club?.trim() == clubs.first);
+    final nonNullClubs = recentClubs.where((c) => c != null && c!.isNotEmpty).toSet();
+    final bool allSameTeam = nonNullClubs.length == 1 && recentClubs.every((c) => c == nonNullClubs.first);
     
     String exportType = allSameTeam ? 'Team' : 'Individual'; 
     Swimmer? exportSwimmer = _selectedSwimmer;
-    String teamName = allSameTeam ? clubs.first! : 'Multiple Swimmers';
+    String teamName = allSameTeam ? nonNullClubs.first! : 'Multiple Swimmers';
 
     final String ddmmyyyy = DateFormat('ddMMyyyy').format(DateTime.now());
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(allSameTeam ? 'Team Export' : 'Multi-Swimmer Export'),
+          title: Text(allSameTeam ? 'Team Data Export' : 'Multiple Swimmers Data Export'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(allSameTeam 
-                ? 'All swimmers belong to "${clubs.first}".'
-                : 'Multiple swimmers with different teams detected.'),
+                ? 'All swimmers belong to "${nonNullClubs.first}".'
+                : 'Variation in swimmer teams detected.'),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: exportType,
                 decoration: const InputDecoration(labelText: 'Export Type'),
                 items: [
-                  const DropdownMenuItem(value: 'Individual', child: Text('Individual Swimmer')),
+                  const DropdownMenuItem(value: 'Individual', child: Text('Individual Swimmer Data Export')),
                   DropdownMenuItem(
                     value: 'Team', 
-                    child: Text(allSameTeam ? 'Complete Team' : 'Multiple Swimmers'),
+                    child: Text(allSameTeam ? 'Team Data Export' : 'Multiple Swimmers Data Export'),
                   ),
                 ],
                 onChanged: (val) => setDialogState(() => exportType = val!),
