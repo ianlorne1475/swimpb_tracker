@@ -1,4 +1,4 @@
-SwimPB Tracker v0.6 help and release notes
+SwimPB Tracker v1.0.1 help and release notes
 
 This README file is intended to answer some basic questions related to app content and function.
 
@@ -21,8 +21,16 @@ The settings menu allows the user to manage the following:
 6. Delete a swimmer profile and their swim data.
 7. Delete swim data for a selected swimmer.
 
-## Bulk Import Format (CSV)
-For successful bulk import, your CSV file should include the following columns:
+## Importing & Exporting Data
+Managing your data is simple, whether you're tracking one swimmer or a whole team:
+
+*   **Bringing Data In**: You can quickly add lots of records at once using an Excel or CSV file. Tap "Download sample file here" in the app menu to get a template. You can include results for just one person or a whole team in the same file! Once ready, use the "Import" option to upload your file.
+*   **Saving Individual Data**: If you export data for a single swimmer, it will be saved as a single Excel or CSV file.
+*   **Saving Team Data**: If you export data for multiple swimmers or a whole team, the app will create a ZIP file. This is a special "folder" that keeps everything together—including swimmer photos—so they stay linked to the right profiles when you move them to another device.
+*   **Photo Scans**: You can also use your camera to scan results directly from a photo. The app will "read" the times and help you add them to your history.
+
+## Technical Column Details (for CSV)
+If you are manually creating or editing a CSV file, please ensure it has these headers:
 *   **FirstName, Surname**: Swimmer's name.
 *   **Gender**: 'Male' or 'Female'.
 *   **DOB**: Date of Birth (YYYY-MM-DD).

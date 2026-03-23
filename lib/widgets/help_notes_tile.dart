@@ -65,7 +65,7 @@ class HelpReleaseNotesTile extends StatelessWidget {
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
-                          'SwimPB Tracker v0.6',
+                          'SwimPB Tracker v1.0.1',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -113,14 +113,43 @@ class HelpReleaseNotesTile extends StatelessWidget {
                     _buildBulletItem(
                       context, 
                       '2', 
-                      'Bulk import swimmer data from .xlsx, .csv or photo files (OCR). Download sample file here.',
-                      onTap: () => _shareSampleFile(context),
+                      'Bulk Import: Add data from files or photos. See the "Importing & Exporting" section below.',
                     ),
-                    _buildBulletItem(context, '3', 'Bulk export swimmer data to either a .xlsx or .csv file.'),
+                    _buildBulletItem(
+                      context, 
+                      '3', 
+                      'Bulk Export: Save your data to keep it safe or move it to another device.',
+                    ),
                     _buildBulletItem(context, '4', 'Generate various reports for personal bests, national qualification and personal goals.'),
                     _buildBulletItem(context, '5', 'Toggle the app from light mode to dark mode.'),
                     _buildBulletItem(context, '6', 'Delete a swimmer profile and their swim data.'),
                     _buildBulletItem(context, '7', 'Delete swim data for a selected swimmer.'),
+
+                    const SizedBox(height: 24),
+                    _buildSectionTitle(context, 'Importing & Exporting Data'),
+                    _buildBodyText(context, 'Managing your data is simple, whether you\'re tracking one swimmer or a whole team:'),
+                    const SizedBox(height: 12),
+                    _buildBulletItem(
+                      context, 
+                      '1', 
+                      'Bringing Data In: You can quickly add lots of records at once using an Excel or CSV file. Tap "Download sample file here" to get a template. You can include results for just one person or a whole team in the same file!',
+                      onTap: () => _shareSampleFile(context),
+                    ),
+                    _buildBulletItem(
+                      context, 
+                      '2', 
+                      'Saving Individual Data: If you export data for a single swimmer, it will be saved as a single Excel or CSV file.',
+                    ),
+                    _buildBulletItem(
+                      context, 
+                      '3', 
+                      'Saving Team Data: If you export data for multiple swimmers or a whole team, the app will create a ZIP file. This is a special folder that keeps everything together—including swimmer photos—so they stay linked to the right profiles.',
+                    ),
+                    _buildBulletItem(
+                      context, 
+                      '4', 
+                      'Photo Scans: You can also use your camera to scan results directly from a photo. The app will "read" the times and help you add them to your history.',
+                    ),
 
                     const SizedBox(height: 24),
                     _buildSectionTitle(context, 'Additional Information'),
