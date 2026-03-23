@@ -53,11 +53,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   int _resultCount = 0;
   int _refreshCounter = 0;
   
-  bool _showTooltip = false;
-  bool _isTooltipInTree = false;
-  String _tooltipText = '';
-  Timer? _tooltipTimer;
-
   int _selectedDistance = 50;
   String _selectedStroke = 'Butterfly';
   String _selectedCourse = 'LCM';
@@ -66,16 +61,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        _showTabTooltip(_tabController.index);
-      }
-    });
-
-    // Show tooltip on first load
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showTabTooltip(_tabController.index);
-    });
 
     _loadSwimmers();
     QualifyingTimesService().seedSnag2026Female();
@@ -84,38 +69,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   @override
   void dispose() {
     _tabController.dispose();
-    _tooltipTimer?.cancel();
     super.dispose();
   }
 
-  String _getTooltipText(int index) {
-    switch (index) {
-      case 0:
-        return 'Personal Best times for all distances and strokes in short course and long course events';
-      case 1:
-        return 'Five most recent times for selected distance, stroke and SCM/LCM';
-      case 2:
-        return 'Graphical representation of improvements for selected distance, stroke and SCM/LCM';
-      case 3:
-        return 'Comprehensive list of historical swim meet results';
-      default:
-        return '';
-    }
-  }
-
-  void _showTabTooltip(int index) {
-    _tooltipTimer?.cancel();
-    setState(() {
-      _tooltipText = _getTooltipText(index);
-      _isTooltipInTree = true;
-      _showTooltip = true;
-    });
-    _tooltipTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => _showTooltip = false);
-      }
-    });
-  }
 
 
   Future<void> _loadSwimmers({int? targetId}) async {
@@ -619,49 +575,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           ),
         ),
       ),
-      if (_isTooltipInTree)
-        Positioned(
-            bottom: 80,
-            left: 24,
-            right: 24,
-            child: Material(
-              color: Colors.transparent,
-              child: AnimatedOpacity(
-                opacity: _showTooltip ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 1200),
-                onEnd: () {
-                  if (!_showTooltip && mounted) {
-                    setState(() => _isTooltipInTree = false);
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: (Theme.of(context).brightness == Brightness.dark 
-                        ? AppColors.border 
-                        : AppColors.lightBorder).withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    _tooltipText,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
       ],
     ),
   );
