@@ -301,13 +301,17 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       setState(() {
         _selectedSwimmer = null;
         _meetCount = 0;
+        _scmMeetCount = 0;
+        _lcmMeetCount = 0;
+        _resultCount = 0;
       });
-      _loadSwimmers();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All data cleared successfully.')),
-      );
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
+      await _loadSwimmers();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All data cleared successfully.')),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     }
   }
