@@ -2,13 +2,14 @@ class SwimMeet {
   final int? id;
   final String title;
   final DateTime date;
-  final String course; // 'SCM' or 'LCM'
+  final String? club; // Optional, can be populated via joins for a specific swimmer
 
   SwimMeet({
     this.id,
     required this.title,
     required this.date,
     required this.course,
+    this.club,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +27,7 @@ class SwimMeet {
       title: map['title'],
       date: DateTime.parse(map['date']),
       course: map['course'],
+      club: map['club'],
     );
   }
 }

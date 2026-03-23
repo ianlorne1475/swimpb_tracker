@@ -19,6 +19,7 @@ class AddMeetDialog extends StatefulWidget {
 class _AddMeetDialogState extends State<AddMeetDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
+  final _clubController = TextEditingController();
   DateTime _date = DateTime.now();
   String _course = 'SCM';
   
@@ -55,6 +56,9 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
             );
           }
           if (_entries.isEmpty) _entries.add(EventEntry());
+          if (events.isNotEmpty && events.first.club != null) {
+            _clubController.text = events.first.club!;
+          }
         });
       }
     }
@@ -161,6 +165,15 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _clubController,
+                decoration: const InputDecoration(
+                  labelText: 'Representing Club (Optional)',
+                  prefixIcon: Icon(Icons.business_center_outlined, size: 20),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
               ),
               const SizedBox(height: 20),
               Padding(
@@ -322,6 +335,7 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
                     course: _course,
                     timeMs: _parseTimeToMs(entry.timeStr),
                     date: _date.toIso8601String(),
+                    club: _clubController.text.trim().isNotEmpty ? _clubController.text.trim() : null,
                   );
                   await _dbHelper.insertEvent(event);
                 }
@@ -389,6 +403,7 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
   @override
   void dispose() {
     _titleController.dispose();
+    _clubController.dispose();
     for (var entry in _entries) {
       entry.controller.dispose();
     }

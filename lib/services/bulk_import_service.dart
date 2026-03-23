@@ -740,6 +740,9 @@ class BulkImportService {
         final rowCourseStr = colMap.containsKey('course') && row.length > colMap['course']! ? row[colMap['course']!].toString() : 'SCM';
         final rowCourse = _normalizeCourse(rowCourseStr);
 
+        // Extract Event Club
+        final club = colMap.containsKey('club') && row.length > colMap['club']! ? row[colMap['club']!]?.toString() : null;
+
         // Extract Event Info
         final distIdx = colMap['distance'] ?? 7;
         final strokeIdx = colMap['stroke'] ?? 8;
@@ -774,7 +777,14 @@ class BulkImportService {
           );
 
           await _dbHelper.insertEvent(
-            SwimEvent(meetId: meetId, swimmerId: finalSwimmerId, distance: distance, stroke: stroke, timeMs: timeMs),
+            SwimEvent(
+              meetId: meetId, 
+              swimmerId: finalSwimmerId, 
+              distance: distance, 
+              stroke: stroke, 
+              timeMs: timeMs,
+              club: club,
+            ),
             executor: executor,
           );
         }

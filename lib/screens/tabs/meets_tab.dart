@@ -175,6 +175,25 @@ class _MeetsTabState extends State<MeetsTab> {
                   color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
                 ),
               ),
+              if (meet.club != null && meet.club!.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                Text(
+                  '•',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppColors.textSecondary.withOpacity(0.5) : AppColors.lightTextSecondary.withOpacity(0.5),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  meet.club!.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.primary : AppColors.lightTextPrimary,
+                  ),
+                ),
+              ],
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

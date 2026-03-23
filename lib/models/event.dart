@@ -9,6 +9,8 @@ class SwimEvent {
   final String? date;   // optional, for joined queries
   final String? meetTitle; // optional, for joined queries
 
+  final String? club; // club represented during this event
+
   SwimEvent({
     this.id,
     required this.meetId,
@@ -19,6 +21,7 @@ class SwimEvent {
     this.course,
     this.date,
     this.meetTitle,
+    this.club,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +32,7 @@ class SwimEvent {
       'distance': distance,
       'stroke': stroke,
       'timeMs': timeMs,
+      'club': club,
     };
   }
 
@@ -43,6 +47,7 @@ class SwimEvent {
       course: map['course'],
       date: map['date'],
       meetTitle: map['title'] ?? map['meetTitle'], // title comes from meets table join
+      club: map['club'],
     );
   }
 

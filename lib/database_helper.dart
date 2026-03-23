@@ -29,7 +29,7 @@ class DatabaseHelper {
     String path = _testPath ?? join(await getDatabasesPath(), 'swimpb_tracker.db');
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -70,6 +70,9 @@ class DatabaseHelper {
     if (oldVersion < 9) {
       try { await db.execute('ALTER TABLE swimmer_goals ADD COLUMN targetDate TEXT'); } catch (_) {}
     }
+    if (oldVersion < 10) {
+      try { await db.execute('ALTER TABLE events ADD COLUMN club TEXT'); } catch (_) {}
+    }
   }
 
   Future<void> _createTablesIfNotExist(Database db) async {
@@ -101,6 +104,7 @@ class DatabaseHelper {
         distance INTEGER,
         stroke TEXT,
         timeMs INTEGER,
+        club TEXT,
         FOREIGN KEY (meetId) REFERENCES meets (id) ON DELETE CASCADE,
         FOREIGN KEY (swimmerId) REFERENCES swimmers (id) ON DELETE CASCADE
       )
@@ -253,10 +257,11 @@ class DatabaseHelper {
   Future<List<SwimMeet>> getMeetsBySwimmer(int swimmerId) async {
     Database db = await database;
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
-      SELECT DISTINCT m.* 
+      SELECT m.*, e.club
       FROM meets m
       JOIN events e ON m.id = e.meetId
       WHERE e.swimmerId = ?
+      GROUP BY m.id
       ORDER BY m.date DESC
     ''', [swimmerId]);
     return List.generate(maps.length, (i) => SwimMeet.fromMap(maps[i]));
