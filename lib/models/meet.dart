@@ -2,6 +2,7 @@ class SwimMeet {
   final int? id;
   final String title;
   final DateTime date;
+  final String course; // 'SCM' or 'LCM'
   final String? club; // Optional, can be populated via joins for a specific swimmer
 
   SwimMeet({
