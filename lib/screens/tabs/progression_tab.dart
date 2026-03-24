@@ -348,7 +348,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                   label: HorizontalLineLabel(
                                     show: true,
                                     alignment: Alignment.topRight,
-                                    padding: const EdgeInsets.only(right: 4, bottom: 4),
+                                    padding: const EdgeInsets.only(right: 8, bottom: 4),
                                     style: TextStyle(
                                       color: statusColor.withOpacity(0.85),
                                       fontWeight: FontWeight.w900,
@@ -368,8 +368,8 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                   dashArray: [4, 4],
                                   label: HorizontalLineLabel(
                                     show: true,
-                                    alignment: Alignment.topRight,
-                                    padding: const EdgeInsets.only(right: 4, bottom: 4),
+                                    alignment: Alignment.bottomRight,
+                                    padding: const EdgeInsets.only(right: 8, top: 4),
                                       style: TextStyle(
                                       color: Colors.blue.withOpacity(0.85),
                                       fontWeight: FontWeight.w900,
