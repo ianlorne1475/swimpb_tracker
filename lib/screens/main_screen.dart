@@ -283,7 +283,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         children: [
           Scaffold(
             appBar: AppBar(
-        title: const Text('SwimPB Tracker'),
+              backgroundColor: Colors.pink, // DEBUG: MUST BE PINK
+              title: const Text('SwimPB Tracker'),
         centerTitle: true,
         actions: [
           if (_swimmers.isNotEmpty)
