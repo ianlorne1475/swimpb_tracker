@@ -12,6 +12,7 @@ This document tracks all changes, enhancements, and planned features for the Swi
 ### Fixed
 - **Settings UI**: Resolved an issue where the "Delete Race Data" dropdown wouldn't update dynamically after a deletion.
 - **Main Screen Logic**: Fixed a crash when deleting the last swimmer by ensuring the app reverts to the initial screen if no data remains.
+- **Tab Tooltips**: Restored missing tooltips for the primary navigation tabs (PBs, Recent, Chart, History).
 - **ReportService Migration**: Completed the transition of all reports to the new modular singleton architecture.
 
 ### Refactored

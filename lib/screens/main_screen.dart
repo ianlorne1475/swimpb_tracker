@@ -480,10 +480,22 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     dividerColor: Colors.transparent,
                     labelPadding: EdgeInsets.zero,
                     tabs: const [
-                      Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.emoji_events_outlined, size: 14), SizedBox(width: 4), Text('PBs')])),
-                      Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.access_time, size: 14), SizedBox(width: 4), Text('RECENT')])),
-                      Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.show_chart, size: 14), SizedBox(width: 4), Text('CHART')])),
-                      Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.description_outlined, size: 14), SizedBox(width: 4), Text('HISTORY')])),
+                      Tab(
+                        tooltip: 'Personal Best Times',
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.emoji_events_outlined, size: 14), SizedBox(width: 4), Text('PBs')]),
+                      ),
+                      Tab(
+                        tooltip: 'Recent Swim Times',
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.access_time, size: 14), SizedBox(width: 4), Text('RECENT')]),
+                      ),
+                      Tab(
+                        tooltip: 'Progression Charts',
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.show_chart, size: 14), SizedBox(width: 4), Text('CHART')]),
+                      ),
+                      Tab(
+                        tooltip: 'Swim Meet History',
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.description_outlined, size: 14), SizedBox(width: 4), Text('HISTORY')]),
+                      ),
                     ],
                   ),
                 ),
