@@ -347,7 +347,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                       color: statusColor.withOpacity(0.85),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 10,
-                                      backgroundColor: isDark ? Colors.black26 : Colors.white54,
+                                      backgroundColor: Colors.transparent,
                                     ),
                                     labelResolver: (line) {
                                       final duration = Duration(milliseconds: qt.timeMs);
@@ -379,7 +379,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                       color: Colors.blue.withOpacity(0.85),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 10,
-                                      backgroundColor: isDark ? Colors.black26 : Colors.white54,
+                                      backgroundColor: Colors.transparent,
                                     ),
                                     labelResolver: (line) {
                                       final duration = Duration(milliseconds: goal.timeMs);
