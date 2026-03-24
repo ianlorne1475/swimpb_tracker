@@ -2,7 +2,13 @@
 
 This document tracks all changes, enhancements, and planned features for the SwimPB Tracker application.
 
-## [v1.0.3+9] - 2026-03-23
+## [v1.0.3+9] - 2026-03-24 10:52
+### Fixed (Today)
+- **Tab Tooltips**: Restored missing tooltips for the primary navigation tabs (PBs, Recent, Chart, History).
+- **Chart Annotations**: Repositioned Qualification and Goal labels to the top-right of the progression chart to avoid overlapping with data plots.
+- **Tooltip Styling**: Applied semi-transparent glassmorphism theme to all tooltips project-wide.
+
+## [v1.0.3+9] - 2026-03-23 21:00
 ### Added
 - **TimeUtils**: Centralized all time formatting ("M:SS.hh") and parsing logic into a single testable utility class.
 - **BaseReport Mixin**: Standardized PDF report layouts (headers, footers, styling) for all generated reports.
@@ -12,15 +18,13 @@ This document tracks all changes, enhancements, and planned features for the Swi
 ### Fixed
 - **Settings UI**: Resolved an issue where the "Delete Race Data" dropdown wouldn't update dynamically after a deletion.
 - **Main Screen Logic**: Fixed a crash when deleting the last swimmer by ensuring the app reverts to the initial screen if no data remains.
-- **Tab Tooltips**: Restored missing tooltips for the primary navigation tabs (PBs, Recent, Chart, History).
-- **Chart Annotations**: Repositioned Qualification and Goal labels to the top-right of the progression chart to avoid overlapping with data plots.
 - **ReportService Migration**: Completed the transition of all reports to the new modular singleton architecture.
 
 ### Refactored
 - **ReportService**: Modularized the "God Class" by extracting static content (quotes/tips) into `ReportContent` and separating UI mixins.
 - **Model Clean-up**: Updated `SwimEvent` and related models to use `TimeUtils` internally.
 
-## [v1.0.1] - 2026-03-19
+## [v1.0.1] - 2026-03-19 15:30
 ### Finalized
 - **Stylized Launcher Icon**: Applied the final high-quality icon assets.
 - **Persistence**: Verified SQLite data persistence across app restarts.
