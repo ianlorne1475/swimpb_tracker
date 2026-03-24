@@ -2,33 +2,33 @@
 
 This document tracks all changes, enhancements, and planned features for the SwimPB Tracker application.
 
-## [v1.0.3+9] - 2026-03-24 10:52
+## [v1.0.3+9] - 2026-03-24
 ### Fixed (Today)
-- **Tab Tooltips**: Restored missing tooltips for the primary navigation tabs (PBs, Recent, Chart, History).
-- **Chart Annotations**: Repositioned Qualification and Goal labels to the top-right of the progression chart to avoid overlapping with data plots.
-- **Tooltip Styling**: Applied semi-transparent glassmorphism theme to all tooltips project-wide.
+- **Tab Tooltips**: Restored missing tooltips for the primary navigation tabs. (2026-03-24 10:46)
+- **Tooltip Styling**: Applied semi-transparent glassmorphism theme to all tooltips project-wide. (2026-03-24 10:47)
+- **Chart Annotations**: Repositioned Qualification and Goal labels to the top-right and made their backgrounds **fully transparent**. (2026-03-24 10:53)
 
-## [v1.0.3+9] - 2026-03-23 21:00
+## [v1.0.3+9] - 2026-03-23
 ### Added
-- **TimeUtils**: Centralized all time formatting ("M:SS.hh") and parsing logic into a single testable utility class.
-- **BaseReport Mixin**: Standardized PDF report layouts (headers, footers, styling) for all generated reports.
-- **Exit App Confirmation**: Added a safety dialog and full process termination (`exit(0)`) to the "Exit App" button.
-- **Version Increment**: Updated build number to 9 and version to 1.0.3.
+- **TimeUtils**: Centralized all time formatting and parsing logic into a utility class. (2026-03-23 21:00)
+- **BaseReport Mixin**: Standardized PDF report layouts and styling. (2026-03-23 21:05)
+- **Exit App Confirmation**: Added a safety dialog and full process termination (`exit(0)`). (2026-03-23 21:15)
+- **Version Increment**: Updated build number to 9 and version to 1.0.3. (2026-03-23 21:20)
 
 ### Fixed
-- **Settings UI**: Resolved an issue where the "Delete Race Data" dropdown wouldn't update dynamically after a deletion.
-- **Main Screen Logic**: Fixed a crash when deleting the last swimmer by ensuring the app reverts to the initial screen if no data remains.
-- **ReportService Migration**: Completed the transition of all reports to the new modular singleton architecture.
+- **Settings UI**: Resolved an issue where the "Delete Race Data" dropdown wouldn't update. (2026-03-23 21:22)
+- **Main Screen Logic**: Fixed a crash when deleting the last swimmer. (2026-03-23 21:25)
+- **ReportService Migration**: Completed the transition to the modular singleton architecture. (2026-03-23 21:28)
 
 ### Refactored
-- **ReportService**: Modularized the "God Class" by extracting static content (quotes/tips) into `ReportContent` and separating UI mixins.
-- **Model Clean-up**: Updated `SwimEvent` and related models to use `TimeUtils` internally.
+- **ReportService**: Modularized the service by extracting static content. (2026-03-23 21:30)
+- **Model Clean-up**: Updated `SwimEvent` and related models to use `TimeUtils`. (2026-03-23 21:32)
 
-## [v1.0.1] - 2026-03-19 15:30
+## [v1.0.1] - 2026-03-19
 ### Finalized
-- **Stylized Launcher Icon**: Applied the final high-quality icon assets.
-- **Persistence**: Verified SQLite data persistence across app restarts.
-- **Reset Logic**: Implemented "Clear All Data" functionality with appropriate redirects.
+- **Stylized Launcher Icon**: Applied the final high-quality icon assets. (2026-03-19 15:30)
+- **Persistence**: Verified SQLite data persistence across app restarts. (2026-03-19 15:35)
+- **Reset Logic**: Implemented "Clear All Data" functionality. (2026-03-19 15:40)
 
 ---
 
