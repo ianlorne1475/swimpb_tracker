@@ -357,7 +357,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                       backgroundColor: Colors.transparent,
                                     ),
                                     labelResolver: (line) {
-                                      return '${hasQualified ? 'Qualified' : 'QT'}: ${TimeUtils.formatMsToTime(qt.timeMs)}';
+                                      return '${hasQualified ? 'Qualified' : 'QT'}: ${TimeUtils.formatTime(qt.timeMs)}';
                                     },
                                   ),
                                 ),
@@ -378,7 +378,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                       backgroundColor: Colors.transparent,
                                     ),
                                     labelResolver: (line) {
-                                      return 'Goal: ${TimeUtils.formatMsToTime(goal.timeMs)}';
+                                      return 'Goal: ${TimeUtils.formatTime(goal.timeMs)}';
                                     },
                                   ),
                                 ),
