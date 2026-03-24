@@ -6,6 +6,7 @@ import '../../models/swimmer.dart';
 import '../../models/qualifying_time.dart';
 import '../../models/goal.dart';
 import '../../widgets/add_goal_dialog.dart';
+import '../../utils/time_utils.dart';
 import '../../theme/app_theme.dart';
 
 class ProgressionTab extends StatefulWidget {
@@ -201,7 +202,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     foregroundColor: isDark ? Colors.white : AppColors.primary,
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Text(
                         'Goal',
