@@ -3,16 +3,27 @@ import 'package:flutter/services.dart';
 class TimeUtils {
   /// Formats time in milliseconds to a string: "M:SS.hh" or "SS.hh"
   static String formatTime(int timeMs) {
-    final duration = Duration(milliseconds: timeMs);
+    final absMs = timeMs.abs();
+    final duration = Duration(milliseconds: absMs);
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
-    final hundredths = (timeMs % 1000) ~/ 10;
+    final hundredths = (absMs % 1000) ~/ 10;
+    
+    final sign = timeMs < 0 ? '-' : '';
     
     if (minutes > 0) {
-      return '$minutes:${seconds.toString().padLeft(2, '0')}.${hundredths.toString().padLeft(2, '0')}';
+      return '$sign$minutes:${seconds.toString().padLeft(2, '0')}.${hundredths.toString().padLeft(2, '0')}';
     } else {
-      return '$seconds.${hundredths.toString().padLeft(2, '0')}';
+      return '$sign$seconds.${hundredths.toString().padLeft(2, '0')}';
     }
+  }
+
+  /// Formats a time delta (e.g. "+1.20s" or "-0.50s")
+  static String formatDelta(int deltaMs) {
+    final isFaster = deltaMs <= 0;
+    final absMs = deltaMs.abs();
+    final seconds = absMs / 1000;
+    return '${isFaster ? '-' : '+'}${seconds.toStringAsFixed(2)}s';
   }
 
   /// Parses a time string (MM:SS.hh or SS.hh) to milliseconds

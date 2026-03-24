@@ -245,7 +245,7 @@ class PBCard extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            '${isFaster ? '-' : '+'}${deltaSeconds.toStringAsFixed(2)}s',
+            TimeUtils.formatDelta(deltaMs),
             style: TextStyle(
             fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -268,11 +268,7 @@ class PBCard extends StatelessWidget {
   Widget _buildGoalRow(bool isDark) {
     final delta = event.timeMs - goal!.timeMs;
     final isMet = delta <= 0;
-    
-    final duration = Duration(milliseconds: delta.abs());
-    final seconds = duration.inSeconds;
-    final hundredths = (delta.abs() % 1000) ~/ 10;
-    final formattedDelta = '${isMet ? '-' : '+'}$seconds.${hundredths.toString().padLeft(2, '0')}s';
+    final formattedDelta = TimeUtils.formatDelta(delta);
 
     final color = isMet ? AppColors.accent : Colors.blue;
 

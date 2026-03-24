@@ -173,9 +173,10 @@ class BulkExportService {
 
   String _getPhotoFileName(Map<String, dynamic> data) {
     if (data['photoPath'] == null) return '';
-    final ext = path.extension(data['photoPath'].toString());
-    final fullName = '${data['firstName']}_${data['surname']}'.replaceAll(" ", "_");
-    return '${fullName}${ext}';
+    final ext = path.extension(data['photoPath'].toString()).toLowerCase();
+    String first = (data['firstName'] ?? '').toString().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    String sur = (data['surname'] ?? '').toString().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    return '${first}_${sur}_photo$ext';
   }
 
   Future<Map<String, Uint8List>> getSwimmerFullExport(int swimmerId) async {

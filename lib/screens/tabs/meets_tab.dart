@@ -286,14 +286,6 @@ class _MeetsTabState extends State<MeetsTab> {
                       '${event.distance}m ${event.stroke}',
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                     ),
-                    subtitle: event.club != null ? Text(
-                      event.club!.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.primary : AppColors.lightTextPrimary.withOpacity(0.7),
-                      ),
-                    ) : null,
                     trailing: Text(
                       event.formattedTime,
                       style: TextStyle(

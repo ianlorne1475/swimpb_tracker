@@ -422,7 +422,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
             const Text('SwimPB Tracker', style: TextStyle(fontWeight: FontWeight.bold)),
-            const Text('v1.0.1', style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal)),
+            const Text('v1.1.0', style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal)),
           ],
         ),
         content: Column(

@@ -386,7 +386,52 @@ class DatabaseHelper {
     );
   
     if (maps.isNotEmpty) {
-      return maps.first['id'] as int;
+      final existingId = maps.first['id'] as int;
+      final existing = Swimmer.fromMap(maps.first);
+      
+      // Update if current data is default/empty but new data is provided
+      bool needsUpdate = false;
+      String nationality = existing.nationality;
+      String? photoPath = existing.photoPath;
+      DateTime dob = existing.dob;
+      String gender = existing.gender;
+      String? club = existing.club;
+
+      if ((nationality == 'Unknown' || nationality.isEmpty) && swimmer.nationality != 'Unknown' && swimmer.nationality.isNotEmpty) {
+        nationality = swimmer.nationality;
+        needsUpdate = true;
+      }
+      if (photoPath == null && swimmer.photoPath != null) {
+        photoPath = swimmer.photoPath;
+        needsUpdate = true;
+      }
+      if (existing.dob.year == 2000 && swimmer.dob.year != 2000) {
+        dob = swimmer.dob;
+        needsUpdate = true;
+      }
+      if (gender == 'Female' && swimmer.gender != 'Female') { // Simple heuristic or keep if swimmer from import has different gender
+        gender = swimmer.gender;
+        needsUpdate = true;
+      }
+      if ((club == null || club.isEmpty) && swimmer.club != null && swimmer.club!.isNotEmpty) {
+        club = swimmer.club;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        final updated = Swimmer(
+          id: existingId,
+          firstName: existing.firstName,
+          surname: existing.surname,
+          photoPath: photoPath,
+          dob: dob,
+          nationality: nationality,
+          gender: gender,
+          club: club,
+        );
+        await db.update('swimmers', updated.toMap(), where: 'id = ?', whereArgs: [existingId]);
+      }
+      return existingId;
     } else {
       return await insertSwimmer(swimmer, executor: db);
     }

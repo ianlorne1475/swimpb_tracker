@@ -1,4 +1,4 @@
-package com.example.swimpb_tracker
+package com.trisoftsg.swimpb_tracker
 
 import io.flutter.embedding.android.FlutterActivity
 

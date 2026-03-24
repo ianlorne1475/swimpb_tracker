@@ -13,7 +13,6 @@ import '../models/swimmer.dart';
 import '../models/meet.dart';
 import '../models/event.dart';
 import '../models/goal.dart';
-import '../models/qualifying_time.dart';
 import '../utils/time_utils.dart';
 
 class BulkImportService {
@@ -114,9 +113,9 @@ class BulkImportService {
           if (photoFileIdx != -1) {
             for (int i = 1; i < rows.length; i++) {
               if (rows[i].length > photoFileIdx) {
-                final fileName = rows[i][photoFileIdx].toString();
-                if (fileName.isNotEmpty && externalFiles.containsKey(fileName)) {
-                  rowToImage[i] = externalFiles[fileName]!;
+                final fileName = rows[i][photoFileIdx].toString().toLowerCase().trim();
+                if (fileName.isNotEmpty && (externalFiles.containsKey(fileName) || externalFiles.containsKey(fileName.toLowerCase()))) {
+                  rowToImage[i] = externalFiles[fileName] ?? externalFiles[fileName.toLowerCase()]!;
                 }
               }
             }
@@ -177,7 +176,9 @@ class BulkImportService {
         await portraitsDir.create(recursive: true);
       }
       
-      final fileName = '${firstName.toLowerCase()}_${surname.toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      String first = firstName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+      String sur = surname.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+      final fileName = '${first}_${sur}_photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final file = File('${portraitsDir.path}/$fileName');
       await file.writeAsBytes(bytes);
       return file.path;
@@ -215,7 +216,6 @@ class BulkImportService {
       final sheetRelNode = workbookRelsDoc.findAllElements('Relationship').firstWhere(
         (node) => node.getAttribute('Id') == rId,
       );
-      final sheetPath = 'xl/${sheetRelNode.getAttribute('Target')}';
 
       // 2. Find drawing for this sheet
       final sheetRelsPath = 'xl/worksheets/_rels/${sheetRelNode.getAttribute('Target')!.split('/').last}.rels';

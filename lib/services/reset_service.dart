@@ -14,7 +14,6 @@ class ResetService {
     final lastReset = _prefs.getLastResetDate();
 
     if (lastReset != today) {
-      print('Daily reset triggered: $lastReset -> $today');
       // Add any specific daily reset logic here
       await _prefs.setLastResetDate(today);
     }

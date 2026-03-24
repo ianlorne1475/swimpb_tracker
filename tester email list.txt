@@ -1,5 +1,42 @@
-Paulkirk1608@hotmail.com
+
+
+katiekaiwei@gmail.com
+annakaienhawkins@gmail.com
+ianlorne@googlemail.com
+Jane.leaver1@gmail.com
+flyfreeladybird@gmail.com
+npellinghk@gmail.com
 brbferraresi@gmail.com
 Vickandlines@gmail.com
 alessia.bulani@gmail.com
+jocelynt@gmail.com
+viscitudonal@gmail.com
+
+
+Paulkirk1608@hotmail.com
 rodlooi@outlook.my
+
+Improved Data Sync & Team Support
+- ZIP imports, allowing you to import data for multiple swimmers—including their photos and profiles—in one go.
+- Fixed a critical data-persistence issue to ensure nationality and swimmer metadata are correctly restored during imports.
+- Smarter Charts: Qualification and Goal annotations now avoid overlapping when times are close.
+- Re-engineered the time formatting engine for perfect consistency across PBs, Goals, and History.
+- Modernized UI with premium semi-transparent interactive tooltips.
+- Improved visibility and interaction states for Light Mode users.
+- Project-wide performance improvements for a smoother, faster experience on all devices.
+</en-GB>
+
+Improved Data Sync
+- ZIP imports, allowing you to import data for multiple swimmers—including their photos and profiles.
+- Smarter Charts: Qualification and Goal annotations now avoid overlapping when times are close.
+- Re-engineered time formatting engine for perfect consistency across PBs, Goals, and History.
+- Modernized UI with premium semi-transparent interactive tooltips.
+- Improved visibility and interaction states for Light Mode users.
+- Project-wide performance improvements for a smoother, faster experience on all devices.
+
+- ZIP imports, allowing you to import data for multiple swimmers—including their photos and profiles.
+- Smarter Charts: Qualification and Goal annotations now avoid overlapping when times are close.
+- Re-engineered time formatting engine for perfect consistency across PBs, Goals, and History.
+- Modernized UI with premium semi-transparent interactive tooltips.
+- Improved visibility and interaction states for Light Mode users.
+- App performance improvements for a smoother, faster experience.

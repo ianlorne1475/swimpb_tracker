@@ -1,60 +1,51 @@
 # SwimPB Tracker Changelog
 
 This document tracks all changes, enhancements, and planned features for the SwimPB Tracker application.
+    
+## [v1.1.1] - 2026-03-25
+### Added
+- Preparing for next development cycle. (2026-03-25 06:47)
 
-## [v1.0.3+9] - 2026-03-24
-### Fixed (Today)
-- **Tab Tooltips**: Restored missing tooltips for the primary navigation tabs. Implemented via `Tooltip` wrappers to ensure compatibility with all Flutter versions. (2026-03-24 11:01)
-- **Tooltip Styling**: Applied semi-transparent glassmorphism theme to all tooltips project-wide. (2026-03-24 10:47)
-- **Chart Annotations**: Optimized label placement (QT on top, Goal on bottom) to prevent overlaps and improved transparency. (2026-03-24 17:22)
-- **Chart Restoration**: Restored missing Y-axis time labels and fixed "Goal" button visibility/contrast in light mode. (2026-03-24 17:15)
-- **OCR Hardening (Parked)**: Finalized advanced grid extraction and strict garbage data filtering before parking the feature in the roadmap for current stability. (2026-03-24 17:08)
+## [v1.1.0] - 2026-03-24
+### Added (Pre-Release Polish)
+- **Time Standardization**: Refactored the entire app to use a centralized `TimeUtils` engine. All PBs, goals, and history now use the exact same formatting logic for 100% consistency. (2026-03-24 18:30)
+- **Service Layer Consolidation**: Standardized `ThemeService` and `PreferenceService` as robust singletons with safe initialization in `main.dart`. (2026-03-24 18:15)
+- **Performance Optimization**: Conducted a project-wide `const` pass on stable widgets to minimize rebuild overhead and improve frame rates. (2026-03-24 18:45)
+- **Production Cleanup**: Removed all `debugPrint` and diagnostic logs used during OCR development for a clean release build. (2026-03-24 18:40)
+- **Package Renaming**: Officially updated the Android App ID to `com.trisoftsg.swimpb_tracker` for Play Store compliance. (2026-03-24 20:30)
+- **Security & Optimization**: Conducted an R8 minification audit. Remained on the standard build for v1.1.0 to prioritize absolute runtime stability. (2026-03-24 21:15)
+
+### Fixed
+- **Team Data Persistence**: Fixed a critical issue where swimmer nationality and photos were not restored during ZIP imports. Existing swimmers and their metadata are now correctly merged and updated. (2026-03-24 18:42)
+- **Photo Sync**: Standardized photo filename generation for cross-platform reliability in export archives. (2026-03-24 18:40)
+- **History UI**: Removed redundant club/team display from individual events in the meet history list for a cleaner look. (2026-03-24 18:29)
+- **ZIP Support**: Enabled the `.zip` extension in the file picker to allow multi-swimmer team data imports (including photos). (2026-03-24 18:21)
+- **Tab Tooltips**: Restored missing tooltips for primary navigation (2026-03-24 11:01).
+- **Chart Annotations**: Optimized label placement to prevent overlapping when qualification and goal lines are close (2026-03-24 17:22).
+- **Light Mode Contrast**: Fixed "Goal" button visibility and chart highlights for light theme users (2026-03-24 17:15).
+
+---
 
 ## [v1.0.3+9] - 2026-03-23
 ### Added
-- **TimeUtils**: Centralized all time formatting and parsing logic into a utility class. (2026-03-23 21:00)
-- **BaseReport Mixin**: Standardized PDF report layouts and styling. (2026-03-23 21:05)
-- **Exit App Confirmation**: Added a safety dialog and full process termination (`exit(0)`). (2026-03-23 21:15)
-- **Version Increment**: Updated build number to 9 and version to 1.0.3. (2026-03-23 21:20)
-
-### Fixed
-- **Settings UI**: Resolved an issue where the "Delete Race Data" dropdown wouldn't update. (2026-03-23 21:22)
-- **Main Screen Logic**: Fixed a crash when deleting the last swimmer. (2026-03-23 21:25)
-- **ReportService Migration**: Completed the transition to the modular singleton architecture. (2026-03-23 21:28)
-
-### Refactored
-- **ReportService**: Modularized the service by extracting static content. (2026-03-23 21:30)
-- **Model Clean-up**: Updated `SwimEvent` and related models to use `TimeUtils`. (2026-03-23 21:32)
-
-## [v1.0.1] - 2026-03-19
-### Finalized
-- **Stylized Launcher Icon**: Applied the final high-quality icon assets. (2026-03-19 15:30)
-- **Persistence**: Verified SQLite data persistence across app restarts. (2026-03-19 15:35)
-- **Reset Logic**: Implemented "Clear All Data" functionality. (2026-03-19 15:40)
+- **TimeUtils**: Initial implementation of centralized time formatting and parsing.
+- **BaseReport Mixin**: Standardized PDF report layouts and styling.
+- **Exit App Confirmation**: Added safety dialog during app closure.
 
 ---
 
 ## Future Enhancements & Roadmap
 
 ### 📱 User Interface & Experience
-- [ ] **Sharing Feature**: Implement "Share with a Friend" in the Settings menu (currently a placeholder).
-- [ ] **Service Layer Alignment**: Refactor `ThemeService` and `PreferenceService` for better architectural consistency.
-- [ ] **Smart Notifications**: Goal-proximity alerts and automatic "Qualification Watch" notifications for major meets.
+- [ ] **Sharing Feature**: Implement "Share with a Friend" in the Settings menu.
+- [ ] **Smart Notifications**: Goal-proximity alerts and automatic "Qualification Watch" notifications.
 
 ### ☁️ Cloud & Connectivity
-- [ ] **Cloud Sync & Firebase**: Upgrade with Firebase for secure backup, team synchronization, and advanced crashlytics.
-- [ ] **User Authentication**: Secure login via **Google, Facebook, and Email** for multi-device sync and personalized profiles.
-- [ ] **Wearable Sync**: Integrate with **Garmin, Apple Watch, and Whoop** to automate training and heart rate data import.
-
-### 📊 Performance & Coaching
-- [ ] **Training Logbook**: Track daily yardage/meters and **RPE** (Rate of Perceived Exertion) to monitor fatigue.
-- [ ] **Training Set Builder**: Generate custom swim sets based on available pool time and specific stroke techniques to improve.
-- [ ] **Deep Analytics**: Detailed **Split Analysis** for races and stroke-efficiency metrics (Stroke Count/Rate).
-- [ ] **Block Time**: Dedicated tracking for swimmer reaction time off the start blocks.
-- [ ] **Advanced Comparisons**: Technical tools for cross-swimmer and multi-season progression analysis.
+- [ ] **Cloud Sync**: Firebase integration for secure multi-device backup.
+- [ ] **User Authentication**: Secure login via Google, Facebook, and Email.
+- [ ] **Wearable Sync**: Integration with Garmin and Apple Watch.
 
 ### 🏆 OCR & Automated Data Entry
-- [x] **OCR Implementation (Parked)**: Developed advanced grid reconstruction and result filtering. Reached ~85% reliability on varied layouts, but parked as of v1.1.0 to prioritize CSV/XLSX stability.
-- [ ] **Season Planner**: Group meets into seasons and set a primary "Target Meet" with a **Taper Visualizer**.
-- [ ] **Team Leaderboards**: Permission-based club rankings and squad performance tracking.
-- [ ] **Coach/Parent Portal**: Secure, view-only access for coaches to monitor multiple swimmers' progress in real-time.
+- [x] **OCR Hardening (v1.1.0 Ready)**: Advanced grid extraction and strict garbage filtering. Reliability ~85%. Parked to prioritize file-based stability.
+- [ ] **Season Planner**: Group meets into seasons and set "Target Meet" goals with a Taper Visualizer.
+- [ ] **Coach/Parent Portal**: Secure, view-only access for real-time progress monitoring.
