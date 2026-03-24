@@ -6,7 +6,9 @@ This document tracks all changes, enhancements, and planned features for the Swi
 ### Fixed (Today)
 - **Tab Tooltips**: Restored missing tooltips for the primary navigation tabs. Implemented via `Tooltip` wrappers to ensure compatibility with all Flutter versions. (2026-03-24 11:01)
 - **Tooltip Styling**: Applied semi-transparent glassmorphism theme to all tooltips project-wide. (2026-03-24 10:47)
-- **Chart Annotations**: Repositioned Qualification and Goal labels to the top-right and made their backgrounds **fully transparent**. (2026-03-24 10:53)
+- **Chart Annotations**: Repositioned Qualification and Goal labels and made their backgrounds fully transparent. (2026-03-24 10:53)
+- **Chart Restoration**: Restored missing Y-axis time labels and fixed "Goal" button visibility/contrast in light mode. (2026-03-24 17:15)
+- **OCR Hardening (Parked)**: Finalized advanced grid extraction and strict garbage data filtering (header/zero-time rejection) before parking the feature in the roadmap for current stability. (2026-03-24 17:08)
 
 ## [v1.0.3+9] - 2026-03-23
 ### Added
@@ -51,7 +53,8 @@ This document tracks all changes, enhancements, and planned features for the Swi
 - [ ] **Block Time**: Dedicated tracking for swimmer reaction time off the start blocks.
 - [ ] **Advanced Comparisons**: Technical tools for cross-swimmer and multi-season progression analysis.
 
-### 🏆 Planning & Community
+### 🏆 OCR & Automated Data Entry
+- [x] **OCR Implementation (Parked)**: Developed advanced grid reconstruction and result filtering. Reached ~85% reliability on varied layouts, but parked as of v1.1.0 to prioritize CSV/XLSX stability.
 - [ ] **Season Planner**: Group meets into seasons and set a primary "Target Meet" with a **Taper Visualizer**.
 - [ ] **Team Leaderboards**: Permission-based club rankings and squad performance tracking.
 - [ ] **Coach/Parent Portal**: Secure, view-only access for coaches to monitor multiple swimmers' progress in real-time.

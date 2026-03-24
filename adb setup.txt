@@ -15,3 +15,7 @@ adb pair ip: port (from phone pop up)
 Connect devices
 
 adb connect ip:port (Mac side - top of pairing window on phone) 
+
+To run app from terminal
+
+flutter run -d <IP_address>:port

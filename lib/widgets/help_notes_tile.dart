@@ -113,7 +113,7 @@ class HelpReleaseNotesTile extends StatelessWidget {
                     _buildBulletItem(
                       context, 
                       '2', 
-                      'Bulk Import: Add data from files or photos. See the "Importing & Exporting" section below.',
+                      'Add data from an Excel/CSV file. See the "Importing & Exporting" section below.',
                     ),
                     _buildBulletItem(
                       context, 
@@ -145,11 +145,9 @@ class HelpReleaseNotesTile extends StatelessWidget {
                       '3', 
                       'Saving Team Data: If you export data for multiple swimmers or a whole team, the app will create a ZIP file. This is a special folder that keeps everything together—including swimmer photos—so they stay linked to the right profiles.',
                     ),
-                    _buildBulletItem(
-                      context, 
-                      '4', 
-                      'Photo Scans: You can also use your camera to scan results directly from a photo. The app will "read" the times and help you add them to your history.',
-                    ),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle(context, 'Release Notes (v1.1.0)'),
+                    _buildBodyText(context, '• Enhanced multi-swimmer export logic.\n• Improved PDF report layouts.\n• Added support for team-wide ZIP exports with photos.'),
 
                     const SizedBox(height: 24),
                     _buildSectionTitle(context, 'Additional Information'),

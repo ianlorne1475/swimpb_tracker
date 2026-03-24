@@ -19,6 +19,9 @@ import '../utils/time_utils.dart';
 class BulkImportService {
   final DatabaseHelper _dbHelper;
   final _textRecognizer = TextRecognizer();
+  // Support MM:SS.hh or SS.hh or TimeMs (only 5-7 digits to avoid years)
+  // We use [.:,] as separators and ensure no dashes are adjacent to avoid matching dates
+  static final _universalTimeRegex = RegExp(r'(?<![\-\d])(\d{1,2}[\:\.\,]\d{1,2}[\:\.\,]\d{1,2})(?![\-\d])|(?<![\-\d])(\d{1,2}[\:\.\,]\d{1,2})(?![\-\d])|(\b\d{5,7}\b)');
 
   BulkImportService({DatabaseHelper? dbHelper}) : _dbHelper = dbHelper ?? DatabaseHelper();
 
@@ -67,7 +70,8 @@ class BulkImportService {
         // Extract images manually from the archive
         final Map<int, Uint8List> rowToImage = await _extractXlsxImages(archive, table, rows);
         
-        totalImported += await _importFromRows(rows, targetSwimmerId: targetSwimmerId, course: course, rowImages: rowToImage, sheetName: table, executor: txn);
+        final count = await _importFromRows(rows, targetSwimmerId: targetSwimmerId, course: course, rowImages: rowToImage, sheetName: table, executor: txn);
+        totalImported += count;
       }
       return totalImported;
     });
@@ -119,7 +123,8 @@ class BulkImportService {
           }
         }
 
-        totalImported += await _importFromRows(rows, targetSwimmerId: targetSwimmerId, course: course, rowImages: rowToImage, sheetName: table, executor: txn);
+        final count = await _importFromRows(rows, targetSwimmerId: targetSwimmerId, course: course, rowImages: rowToImage, sheetName: table, executor: txn);
+        totalImported += count;
       }
       return totalImported;
     });
@@ -372,19 +377,32 @@ class BulkImportService {
     final inputImage = InputImage.fromFile(imageFile);
     final recognizedText = await _textRecognizer.processImage(inputImage);
     
-    // First, try Matrix OCR (Table based)
+    // Try Matrix OCR (Table based)
     final grid = _reconstructGrid(recognizedText);
     if (_isMatrixGrid(grid)) {
-      return _extractFromMatrixGrid(grid);
+      final results = _extractFromMatrixGrid(grid);
+      if (results.isNotEmpty) return results;
     }
     
     // Try Standard Grid (Row per result)
     if (_isStandardGrid(grid)) {
-      return _extractFromStandardGrid(grid);
+      final results = _extractFromStandardGrid(grid);
+      if (results.isNotEmpty) return results;
     }
     
-    // Fallback to line-by-line
-    return _parseResultsFromText(recognizedText.text);
+    // Fallback to line-by-line (sorted by Y then X)
+    final List<TextLine> allLines = [];
+    for (var block in recognizedText.blocks) {
+      allLines.addAll(block.lines);
+    }
+    allLines.sort((a, b) {
+      final yCompare = a.boundingBox.top.compareTo(b.boundingBox.top);
+      if (yCompare.abs() > 10) return yCompare; 
+      return a.boundingBox.left.compareTo(b.boundingBox.left);
+    });
+
+    final sortedText = allLines.map((l) => l.text).join('\n');
+    return _parseResultsFromText(sortedText);
   }
 
   bool _isMatrixGrid(List<List<String>> grid) {
@@ -438,11 +456,14 @@ class BulkImportService {
           if (j >= dateRow.length || j >= meetRow.length) break;
           
           final timeStr = row[j].trim();
-          if (RegExp(r'\b(\d{1,2}:)?\d{1,2}[\.\:]\d{2}\b').hasMatch(timeStr)) {
+          // Relaxed matching for MM:SS.hh or SS.hh or TimeMs
+          final normalizedTime = _normalizeTime(timeStr);
+          final timeMs = TimeUtils.parseTimeToMs(normalizedTime);
+          if (timeMs > 0) {
             extracted.add({
               'distance': currentDistance,
               'stroke': stroke,
-              'time': timeStr,
+              'time': normalizedTime,
               'meetTitle': meetRow[j],
               'meetDate': dateRow[j],
               'original': '$firstCell @ ${meetRow[j]}',
@@ -456,8 +477,13 @@ class BulkImportService {
 
   bool _isStandardGrid(List<List<String>> grid) {
     for (int i = 0; i < grid.length && i < 10; i++) {
-      final row = grid[i].map((e) => e.toLowerCase().replaceAll(' ', '')).toList();
-      if (row.contains('firstname') || row.contains('surname') || row.contains('timems')) return true;
+      final row = grid[i].map((s) => s.toLowerCase().replaceAll(' ', '').trim()).toList();
+      int matches = 0;
+      if (row.any((c) => c.contains('first') || c.contains('name'))) matches++;
+      if (row.any((c) => c.contains('sur') || c.contains('last'))) matches++;
+      if (row.any((c) => c.contains('time') || c.contains('res'))) matches++;
+      if (row.any((c) => c.contains('dist'))) matches++;
+      if (matches >= 2) return true;
     }
     return false;
   }
@@ -467,9 +493,16 @@ class BulkImportService {
 
     // Find header row
     int headerRowIdx = -1;
-    for (int i = 0; i < grid.length && i < 10; i++) {
-      final row = grid[i].map((e) => e.toLowerCase().replaceAll(' ', '')).toList();
-      if (row.contains('firstname') || row.contains('surname') || row.contains('timems')) {
+    for (int i = 0; i < grid.length; i++) {
+      final row = grid[i].map((s) => s.toLowerCase().replaceAll(' ', '').trim()).toList();
+      // Look for a row that has at least two key swimming headers
+      int matches = 0;
+      if (row.any((c) => c.contains('first') || c.contains('name'))) matches++;
+      if (row.any((c) => c.contains('sur') || c.contains('last'))) matches++;
+      if (row.any((c) => c.contains('time') || c.contains('res'))) matches++;
+      if (row.any((c) => c.contains('dist'))) matches++;
+      
+      if (matches >= 2) {
         headerRowIdx = i;
         break;
       }
@@ -480,54 +513,97 @@ class BulkImportService {
     final headers = grid[headerRowIdx].map((e) => e.toLowerCase().replaceAll(' ', '')).toList();
     
     // Find column indices
-    final firstNameIdx = headers.indexOf('firstname');
-    final surnameIdx = headers.indexOf('surname');
-    final meetTitleIdx = headers.indexOf('meettitle');
-    final meetDateIdx = headers.indexOf('meetdate');
-    final distanceIdx = headers.indexWhere((h) => h.contains('distance'));
+    final firstNameIdx = headers.indexWhere((h) => h.contains('first') || h.contains('given'));
+    final surnameIdx = headers.indexWhere((h) => h.contains('sur') || h.contains('last') || h.contains('family'));
+    final meetTitleIdx = headers.indexWhere((h) => h.contains('meet') && h.contains('title'));
+    final meetDateIdx = headers.indexWhere((h) => h.contains('meet') && h.contains('date'));
+    final distanceIdx = headers.indexWhere((h) => h.contains('dist'));
     final strokeIdx = headers.indexWhere((h) => h.contains('stroke'));
-    final timeMsIdx = headers.indexWhere((h) => h.contains('time'));
+    final timeMsIdx = headers.indexWhere((h) => (h.contains('time') || h.contains('result')) && !h.contains('date'));
     final courseIdx = headers.indexWhere((h) => h.contains('course'));
+    final dobIdx = headers.indexWhere((h) => h.contains('dob') || (h.contains('birth') && h.contains('date')));
+    final nationalityIdx = headers.indexWhere((h) => h.contains('nation') || h.contains('nat'));
 
     if (timeMsIdx == -1) return [];
 
     final List<Map<String, dynamic>> extracted = [];
     for (int i = headerRowIdx + 1; i < grid.length; i++) {
-      final row = grid[i];
-      if (row.length <= timeMsIdx) continue;
+      List<String> row = grid[i];
+      if (row.isEmpty) continue;
+
+      // If the row is very compact (e.g. OCR merged columns), try to split it
+      if (row.length < 3 && row.any((c) => c.contains(' '))) {
+        final List<String> splitRow = <String>[];
+        for (var cell in row) {
+          // Split by common boundaries: spaces followed by digits or strokes
+          final splitParts = cell.split(RegExp(r'\s+(?=\d|Butterfly|Back|Breast|Free|IM)', caseSensitive: false));
+          splitRow.addAll(splitParts.where((p) => p.isNotEmpty));
+        }
+        if (splitRow.isNotEmpty) {
+          row = splitRow;
+        }
+      }
+
+      // If we don't have a timeMsIdx, try to find the FIRST cell that looks like a time
+      int effectiveTimeIdx = timeMsIdx;
+      if (effectiveTimeIdx == -1) {
+        effectiveTimeIdx = row.indexWhere((c) => _universalTimeRegex.hasMatch(c));
+      }
+      
+      if (effectiveTimeIdx == -1 || row.length <= effectiveTimeIdx) continue;
 
       try {
         final distanceStr = distanceIdx != -1 && row.length > distanceIdx ? row[distanceIdx] : '50';
         final distance = int.tryParse(RegExp(r'\d+').firstMatch(distanceStr)?.group(0) ?? '50') ?? 50;
-        
-        final strokeStr = strokeIdx != -1 && row.length > strokeIdx ? row[strokeIdx] : 'Freestyle';
-        final stroke = _normalizeStroke(strokeStr);
+        final strokeVal = strokeIdx != -1 && row.length > strokeIdx ? row[strokeIdx] : 'Freestyle';
+        final stroke = _normalizeStroke(strokeVal);
+        final timeMsStr = row[effectiveTimeIdx].trim();
+
         
         final courseStr = courseIdx != -1 && row.length > courseIdx ? row[courseIdx] : null;
         final resCourse = courseStr != null ? _normalizeCourse(courseStr) : null;
 
-        final timeMsStr = row[timeMsIdx].trim();
         if (timeMsStr.isEmpty) continue;
         
-        // Convert TimeMs to formatted time for consistency in the review dialog
-        String formattedTime;
-        if (RegExp(r'^\d+$').hasMatch(timeMsStr)) {
-          final ms = int.parse(timeMsStr);
-          final duration = Duration(milliseconds: ms);
-          final mins = duration.inMinutes;
-          final secs = duration.inSeconds % 60;
-          final millis = (ms % 1000) ~/ 10;
-          formattedTime = mins > 0 ? '$mins:${secs.toString().padLeft(2, '0')}.${millis.toString().padLeft(2, '0')}' : '$secs.${millis.toString().padLeft(2, '0')}';
-        } else {
-          formattedTime = timeMsStr;
+        // and doesn't have a valid distance/stroke, skip it.
+        if (row.any((cell) => cell.contains('-') || cell.contains('T00:00:00'))) {
+           // Verify we actually have distance and stroke before accepting
+           if (distance == 50 && stroke == 'Freestyle' && !row.any((c) => c.toLowerCase().contains('free'))) {
+             // Likely a false positive from a metadata/date row
+             continue;
+           }
+        }
+
+        final formattedTime = _normalizeTime(timeMsStr);
+        final timeMs = TimeUtils.parseTimeToMs(formattedTime);
+        
+        // CRITICAL: Reject if time is 0 or couldn't be parsed
+        if (timeMs <= 0) continue;
+
+        // If normalization resulted in a very small time (e.g. 2.00 from a year), it's probably wrong
+        if (formattedTime == '2.00' || formattedTime == '20.00' || formattedTime == '20.08') {
+           if (!timeMsStr.contains('.') && !timeMsStr.contains(':')) continue;
+        }
+
+        // Avoid importing header names as meet titles
+        String? finalMeetTitle = meetTitleIdx != -1 && row.length > meetTitleIdx ? row[meetTitleIdx].trim() : null;
+        if (finalMeetTitle != null) {
+          final lowTitle = finalMeetTitle.toLowerCase();
+          if (lowTitle == 'meet' || lowTitle == 'title' || lowTitle == 'meettitle' || lowTitle == 'date' || lowTitle == 'event') {
+            finalMeetTitle = null; 
+          }
         }
 
         extracted.add({
+          'firstName': firstNameIdx != -1 && row.length > firstNameIdx ? row[firstNameIdx] : null,
+          'surname': surnameIdx != -1 && row.length > surnameIdx ? row[surnameIdx] : null,
+          'dob': dobIdx != -1 && row.length > dobIdx ? row[dobIdx] : null,
+          'nationality': nationalityIdx != -1 && row.length > nationalityIdx ? row[nationalityIdx] : 'GB',
           'distance': distance,
           'stroke': stroke,
           'time': formattedTime,
           'course': resCourse,
-          'meetTitle': meetTitleIdx != -1 && row.length > meetTitleIdx ? row[meetTitleIdx] : null,
+          'meetTitle': finalMeetTitle,
           'meetDate': meetDateIdx != -1 && row.length > meetDateIdx ? row[meetDateIdx] : null,
           'original': row.join(' '),
         });
@@ -544,7 +620,7 @@ class BulkImportService {
 
     if (allLines.isEmpty) return [];
 
-    // Group by Y into initial rows
+    // Group by Y into initial rows with a slightly larger tolerance for skewed images
     allLines.sort((a, b) => a.boundingBox.top.compareTo(b.boundingBox.top));
     final List<List<TextLine>> tempRows = [];
     if (allLines.isNotEmpty) {
@@ -552,7 +628,8 @@ class BulkImportService {
       for (int i = 1; i < allLines.length; i++) {
         final line = allLines[i];
         final prevLine = currentRow.last;
-        final tolerance = prevLine.boundingBox.height * 0.7;
+        // Increase tolerance to 80% of height to handle slight tilts
+        final tolerance = prevLine.boundingBox.height * 0.8;
         if ((line.boundingBox.top - prevLine.boundingBox.top).abs() < tolerance) {
           currentRow.add(line);
         } else {
@@ -563,73 +640,157 @@ class BulkImportService {
       tempRows.add(currentRow);
     }
 
-    // Identify header row to define column anchors
-    int headerRowIdx = -1;
-    for (int i = 0; i < tempRows.length && i < 10; i++) {
-      final rowText = tempRows[i].map((l) => l.text.toLowerCase()).toList();
-      if (rowText.any((t) => t.contains('date') || t.contains('meet') || t.contains('first'))) {
-        headerRowIdx = i;
-        break;
+    // Sort each row by X
+    for (var row in tempRows) {
+      row.sort((a, b) => a.boundingBox.left.compareTo(b.boundingBox.left));
+    }
+
+    // Identify ALL potential column anchors from all rows, not just headers
+    // This helps with sparse tables where the header might be missing or mangled.
+    final List<double> allXOffsets = [];
+    for (var row in tempRows) {
+      for (var line in row) {
+        allXOffsets.add(line.boundingBox.left);
       }
     }
+    allXOffsets.sort();
+    
+    // Cluster X offsets into columns using a dynamic threshold based on average text height
+    final List<double> colAnchors = [];
+    if (allXOffsets.isNotEmpty) {
+      double avgHeight = 0;
+      int lineCount = 0;
+      for (var row in tempRows) {
+        for (var line in row) {
+          avgHeight += line.boundingBox.height;
+          lineCount++;
+        }
+      }
+      final threshold = lineCount > 0 ? (avgHeight / lineCount) * 1.5 : 50.0;
 
-    if (headerRowIdx == -1) {
-      // Fallback: simple X-sort
-      return tempRows.map((r) {
-        r.sort((a, b) => a.boundingBox.left.compareTo(b.boundingBox.left));
-        return r.map((l) => l.text).toList();
-      }).toList();
+      double currentAnchor = allXOffsets.first;
+      List<double> currentCluster = [currentAnchor];
+      for (int i = 1; i < allXOffsets.length; i++) {
+        if (allXOffsets[i] - currentAnchor < threshold) { 
+          currentCluster.add(allXOffsets[i]);
+        } else {
+          colAnchors.add(currentCluster.reduce((a, b) => a + b) / currentCluster.length);
+          currentAnchor = allXOffsets[i];
+          currentCluster = [currentAnchor];
+        }
+      }
+      colAnchors.add(currentCluster.reduce((a, b) => a + b) / currentCluster.length);
     }
-
-    final headerRow = tempRows[headerRowIdx];
-    headerRow.sort((a, b) => a.boundingBox.left.compareTo(b.boundingBox.left));
-    final List<double> colCenters = headerRow.map((l) => l.boundingBox.center.dx).toList();
 
     // Reconstruct grid by mapping each line to the nearest column anchor
     final resultGrid = <List<String>>[];
     for (var row in tempRows) {
-      final gridRow = List.filled(colCenters.length, '');
+      final gridRow = List.filled(colAnchors.length, '');
       for (var line in row) {
         int bestCol = 0;
         double minDist = double.infinity;
-        for (int c = 0; c < colCenters.length; c++) {
-          final dist = (line.boundingBox.center.dx - colCenters[c]).abs();
+        for (int c = 0; c < colAnchors.length; c++) {
+          final dist = (line.boundingBox.left - colAnchors[c]).abs();
           if (dist < minDist) {
             minDist = dist;
             bestCol = c;
           }
         }
-        gridRow[bestCol] = gridRow[bestCol].isEmpty ? line.text : '${gridRow[bestCol]} ${line.text}';
+        if (gridRow[bestCol].isEmpty) {
+          gridRow[bestCol] = line.text;
+        } else {
+          // Append with space if it seems to be part of the same cell
+          gridRow[bestCol] += ' ${line.text}';
+        }
       }
-      resultGrid.add(gridRow);
+      
+      // Post-process row: Split monolithic cells (e.g., "50m Free 32.50")
+      final List<String> sanitizedRow = [];
+      for (var cell in gridRow) {
+        // If a cell contains a time and something else, split it?
+        // For now, just keep it, but the extraction logic should be aware
+        sanitizedRow.add(cell);
+      }
+      resultGrid.add(sanitizedRow);
     }
     return resultGrid;
+  }
+
+  String _normalizeTime(String timeStr) {
+    final match = _universalTimeRegex.firstMatch(timeStr.trim());
+    if (match == null) return timeStr;
+    
+    final matchedText = match.group(0)!;
+    if (RegExp(r'^\d{4,7}$').hasMatch(matchedText)) {
+      final ms = int.parse(matchedText);
+      return TimeUtils.formatTime(ms);
+    }
+    return matchedText;
   }
 
   List<Map<String, dynamic>> _parseResultsFromText(String text) {
     final List<Map<String, dynamic>> extracted = [];
     final lines = text.split('\n');
 
+    int currentDistance = 50;
+    String currentStroke = 'Freestyle';
+    String? currentMeet;
+    String? currentDate;
+
+    final distanceRegex = RegExp(r'\b(50|100|200|400|800|1500)\b', caseSensitive: false);
+    final strokeRegex = RegExp(r'\b(Freestyle|Free|Fr|Backstroke|Back|Bk|Breaststroke|Breast|Br|Butterfly|Fly|Fl|IM|Medley|Individual Medley)\b', caseSensitive: false);
+    final meetHeaderRegex = RegExp(r'(Meet|Championships|Gala|Open)\s*[:\-]?\s*(.+)', caseSensitive: false);
+    final dateRegex = RegExp(r'\b(\d{1,2}[/\-\.\s]([A-Z][a-z]{2}|\d{1,2})[/\-\.\s]\d{2,4})\b');
+
     for (var line in lines) {
       final cleanedLine = line.trim();
       if (cleanedLine.isEmpty) continue;
 
-      // Distance Heuristic: look for 50, 100, 200, 400, 800, 1500 (with optional 'm')
-      final distanceMatch = RegExp(r'\b(50|100|200|400|800|1500)\s*m?\b', caseSensitive: false).firstMatch(cleanedLine);
-      
-      // Stroke Heuristic: Free, Back, Breast, Fly, IM (including abbreviations)
-      final strokeMatch = RegExp(r'\b(Freestyle|Free|Fr|Backstroke|Back|Bk|Breaststroke|Breast|Br|Butterfly|Fly|Fl|IM|Medley|Individual Medley)\b', caseSensitive: false).firstMatch(cleanedLine);
-      
-      // Time Heuristic: 28.45, 1:02.13, 10:23.45
-      final timeMatch = RegExp(r'\b(\d{1,2}:)?\d{1,2}[\.\:]\d{2}\b').firstMatch(cleanedLine);
+      // Update state if line contains distance or stroke as a header
+      final distMatch = distanceRegex.firstMatch(cleanedLine);
+      final strokeMatch = strokeRegex.firstMatch(cleanedLine);
+      final timeMatch = _universalTimeRegex.firstMatch(cleanedLine);
+      final meetMatch = meetHeaderRegex.firstMatch(cleanedLine);
+      final dateMatch = dateRegex.firstMatch(cleanedLine);
 
-      if (distanceMatch != null && strokeMatch != null && timeMatch != null) {
-        extracted.add({
-          'distance': int.parse(distanceMatch.group(1)!),
-          'stroke': _normalizeStroke(strokeMatch.group(1)!),
-          'time': timeMatch.group(0)!,
-          'original': cleanedLine,
-        });
+      if (meetMatch != null) currentMeet = meetMatch.group(2)?.trim();
+      if (dateMatch != null) currentDate = dateMatch.group(1);
+
+      // If a line is ONLY a distance or stroke, it's likely a header
+      final isOnlyDistance = distMatch != null && cleanedLine.length < 10 && timeMatch == null;
+      final isOnlyStroke = strokeMatch != null && cleanedLine.length < 20 && timeMatch == null;
+
+      if (isOnlyDistance) {
+        currentDistance = int.parse(distMatch.group(1)!);
+        // Sometimes stroke is on the same header line as distance
+        if (strokeMatch != null) currentStroke = _normalizeStroke(strokeMatch.group(1)!);
+        continue;
+      }
+
+      if (isOnlyStroke) {
+        currentStroke = _normalizeStroke(strokeMatch.group(1)!);
+        continue;
+      }
+
+      // If we find a time, build a result using the current state
+      if (timeMatch != null) {
+        // Look for local distance/stroke override on the same line
+        int rowDistance = distMatch != null ? int.parse(distMatch.group(1)!) : currentDistance;
+        String rowStroke = strokeMatch != null ? _normalizeStroke(strokeMatch.group(1)!) : currentStroke;
+
+        final normalizedTime = _normalizeTime(timeMatch.group(0)!);
+        final timeMs = TimeUtils.parseTimeToMs(normalizedTime);
+
+        if (timeMs > 0) {
+          extracted.add({
+            'distance': rowDistance,
+            'stroke': rowStroke,
+            'time': normalizedTime,
+            'meetTitle': currentMeet,
+            'meetDate': currentDate,
+            'original': cleanedLine,
+          });
+        }
       }
     }
     return extracted;
@@ -805,7 +966,7 @@ class BulkImportService {
     if (s.contains('breast') || s == 'br') return 'Breaststroke';
     if (s.contains('fly') || s.contains('butter') || s == 'fl') return 'Butterfly';
     if (RegExp(r'\bim\b', caseSensitive: false).hasMatch(s) || s.contains('medley')) return 'IM';
-    return stroke;
+    return 'Freestyle'; // Safe default for UI dropdown compatibility
   }
 
   String _normalizeCourse(String course) {

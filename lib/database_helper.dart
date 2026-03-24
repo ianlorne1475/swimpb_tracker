@@ -150,8 +150,8 @@ class DatabaseHelper {
     return await db.insert('swimmers', swimmer.toMap());
   }
 
-  Future<List<Swimmer>> getSwimmers() async {
-    Database db = await database;
+  Future<List<Swimmer>> getSwimmers({DatabaseExecutor? executor}) async {
+    DatabaseExecutor db = executor ?? await database;
     final List<Map<String, dynamic>> maps = await db.query('swimmers');
     return List.generate(maps.length, (i) => Swimmer.fromMap(maps[i]));
   }
@@ -318,8 +318,8 @@ class DatabaseHelper {
     return List.generate(maps.length, (i) => SwimEvent.fromMap(maps[i]));
   }
 
-  Future<String?> getRecentClubForSwimmer(int swimmerId) async {
-    Database db = await database;
+  Future<String?> getRecentClubForSwimmer(int swimmerId, {DatabaseExecutor? executor}) async {
+    DatabaseExecutor db = executor ?? await database;
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
       SELECT e.club
       FROM events e

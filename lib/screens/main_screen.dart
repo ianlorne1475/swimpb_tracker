@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../models/event.dart';
+import '../models/meet.dart';
+import '../utils/time_utils.dart';
 import '../services/report_service.dart';
 import '../widgets/pb_certificate.dart';
 import '../widgets/add_goal_dialog.dart';
@@ -208,22 +210,128 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['csv', 'xlsx', 'json'],
+        allowedExtensions: ['csv', 'xlsx', 'json', 'jpg', 'jpeg', 'png'],
       );
 
       if (result != null) {
         final file = File(result.files.single.path!);
+        final extension = file.path.split('.').last.toLowerCase();
+        final isImage = extension == 'jpg' || extension == 'jpeg' || extension == 'png';
+        
         _showLoadingDialog();
         
-        final count = await _importService.importFromFile(file);
-        
-        _hideLoadingDialog();
-
-        if (mounted) {
-          await _loadSwimmers();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Import complete. $count results imported.')),
+        if (isImage) {
+          final extractedEvents = await _importService.extractResultsFromImage(file);
+          _hideLoadingDialog();
+          
+          if (!mounted) return;
+          
+          final List<Map<String, dynamic>>? results = await showDialog(
+            context: context,
+            builder: (context) => OcrReviewDialog(
+              extractedEvents: extractedEvents,
+              course: _selectedCourse,
+              selectedSwimmer: _selectedSwimmer,
+            ),
           );
+          
+          if (results != null && results.isNotEmpty) {
+            _showLoadingDialog();
+            debugPrint('OCR: Starting import of ${results.length} results');
+            int importedCount = 0;
+            
+            try {
+              List<Swimmer> currentSwimmers = await _dbHelper.getSwimmers();
+              
+              for (int index = 0; index < results.length; index++) {
+                final result = results[index];
+                debugPrint('OCR: Processing result $index: ${result['distance']} ${result['stroke']}');
+                
+                // Find or create the swimmer for THIS result
+                final fname = (result['swimmerFirstName'] ?? '').toString().trim();
+                final sname = (result['swimmerSurname'] ?? '').toString().trim();
+                int? targetId;
+
+                if (fname.isNotEmpty && sname.isNotEmpty) {
+                  final match = currentSwimmers.cast<Swimmer?>().firstWhere(
+                    (s) => s!.firstName.toLowerCase() == fname.toLowerCase() && 
+                           s.surname.toLowerCase() == sname.toLowerCase(),
+                    orElse: () => null,
+                  );
+
+                  if (match != null) {
+                    targetId = match.id;
+                  } else {
+                    debugPrint('OCR: Creating new swimmer: $fname $sname');
+                    final dobStr = result['swimmerDob']?.toString();
+                    final dob = DateTime.tryParse(dobStr ?? '') ?? DateTime(2000, 1, 1);
+                    targetId = await _dbHelper.insertSwimmer(Swimmer(
+                      firstName: fname,
+                      surname: sname,
+                      dob: dob,
+                      nationality: 'GB',
+                      gender: 'Female',
+                    ));
+                    currentSwimmers = await _dbHelper.getSwimmers();
+                  }
+                }
+
+                if (targetId != null) {
+                  final meetTitle = result['meetTitle'] ?? 'OCR Import';
+                  final meetDateStr = result['meetDate'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+                  final meetDate = DateTime.tryParse(meetDateStr) ?? DateTime.now();
+                  
+                  int meetId = await _dbHelper.getOrCreateMeet(SwimMeet(
+                    title: meetTitle,
+                    date: meetDate,
+                    course: _selectedCourse,
+                  ));
+                  
+                  final event = SwimEvent(
+                    swimmerId: targetId!,
+                    meetId: meetId,
+                    distance: result['distance'],
+                    stroke: result['stroke'],
+                    course: _selectedCourse,
+                    timeMs: TimeUtils.parseTimeToMs(result['time']),
+                    date: meetDate.toIso8601String(),
+                  );
+                  await _dbHelper.insertEvent(event);
+                  importedCount++;
+                  
+                  if (_selectedSwimmer == null) {
+                     setState(() {
+                       _selectedSwimmer = currentSwimmers.firstWhere((s) => s.id == targetId);
+                     });
+                  }
+                }
+              }
+              debugPrint('OCR: Import loop finished. Imported $importedCount items.');
+            } catch (e) {
+              debugPrint('OCR ERROR: $e');
+              rethrow;
+            } finally {
+              _hideLoadingDialog();
+              debugPrint('OCR: Loading dialog hidden');
+            }
+            
+            if (mounted) {
+              await _loadSwimmers(); // Full refresh
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Import complete. $importedCount results added.')),
+              );
+            }
+          }
+        } else {
+          final count = await _importService.importFromFile(file);
+          _hideLoadingDialog();
+          
+          if (mounted) {
+            await _loadSwimmers();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Import complete. $count results imported.')),
+            );
+          }
         }
       }
     } catch (e) {
@@ -283,7 +391,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         children: [
           Scaffold(
             appBar: AppBar(
-              backgroundColor: Colors.pink, // DEBUG: MUST BE PINK
               title: const Text('SwimPB Tracker'),
         centerTitle: true,
         actions: [
@@ -481,27 +588,27 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     dividerColor: Colors.transparent,
                     labelPadding: EdgeInsets.zero,
                     tabs: const [
-                      Tab(
-                        child: Tooltip(
-                          message: 'Personal Best Times',
+                      Tooltip(
+                        message: 'Personal Best Times',
+                        child: Tab(
                           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.emoji_events_outlined, size: 14), SizedBox(width: 4), Text('PBs')]),
                         ),
                       ),
-                      Tab(
-                        child: Tooltip(
-                          message: 'Recent Swim Times',
+                      Tooltip(
+                        message: 'Recent Swim Times',
+                        child: Tab(
                           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.access_time, size: 14), SizedBox(width: 4), Text('RECENT')]),
                         ),
                       ),
-                      Tab(
-                        child: Tooltip(
-                          message: 'Progression Charts',
+                      Tooltip(
+                        message: 'Progression Charts',
+                        child: Tab(
                           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.show_chart, size: 14), SizedBox(width: 4), Text('CHART')]),
                         ),
                       ),
-                      Tab(
-                        child: Tooltip(
-                          message: 'Swim Meet History',
+                      Tooltip(
+                        message: 'Swim Meet History',
+                        child: Tab(
                           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.description_outlined, size: 14), SizedBox(width: 4), Text('HISTORY')]),
                         ),
                       ),

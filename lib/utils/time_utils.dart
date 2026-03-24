@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 class TimeUtils {
   /// Formats time in milliseconds to a string: "M:SS.hh" or "SS.hh"
   static String formatTime(int timeMs) {
@@ -19,25 +21,26 @@ class TimeUtils {
       final clean = timeStr.trim().replaceAll(':', '.');
       final parts = clean.split('.');
       
-      if (parts.length >= 3) {
+      final filtered = parts.where((p) => p.isNotEmpty).toList();
+      
+      if (filtered.length >= 3) {
         // Handle MM.SS.hh
-        final m = int.parse(parts[parts.length - 3]);
-        final s = int.parse(parts[parts.length - 2]);
-        final hStr = parts[parts.length - 1];
-        final h = int.parse(hStr.padRight(2, '0').substring(0, 2));
+        final m = int.tryParse(filtered[filtered.length - 3]) ?? 0;
+        final s = int.tryParse(filtered[filtered.length - 2]) ?? 0;
+        final hStr = filtered[filtered.length - 1];
+        final h = int.tryParse(hStr.padRight(2, '0').substring(0, 2)) ?? 0;
         return (m * 60000) + (s * 1000) + (h * 10);
-      } else if (parts.length == 2) {
+      } else if (filtered.length == 2) {
         // SS.hh
-        final s = int.parse(parts[0]);
-        final hStr = parts[1];
-        // Special case: if hStr is very long, it might be raw milliseconds?
-        if (hStr.length >= 3 && (parts[0] == '0' || parts[0].isEmpty)) {
+        final s = int.tryParse(filtered[0]) ?? 0;
+        final hStr = filtered[1];
+        if (hStr.length >= 3 && (filtered[0] == '0' || filtered[0].isEmpty)) {
            return int.tryParse(hStr) ?? 0;
         }
-        final h = int.parse(hStr.padRight(2, '0').substring(0, 2));
+        final h = int.tryParse(hStr.padRight(2, '0').substring(0, 2)) ?? 0;
         return (s * 1000) + (h * 10);
-      } else if (parts.length == 1) {
-        return int.tryParse(parts[0]) ?? 0;
+      } else if (filtered.length == 1) {
+        return int.tryParse(filtered[0]) ?? 0;
       }
       return 0;
     } catch (e) {
@@ -47,4 +50,39 @@ class TimeUtils {
 
   /// Alias for formatTime to maintain compatibility
   static String formatDuration(int timeMs) => formatTime(timeMs);
+}
+
+class TimeInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) return newValue;
+
+    // Only allow digits
+    String digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length > 6) digits = digits.substring(0, 6);
+
+    String formatted = '';
+    if (digits.length <= 2) {
+      formatted = digits;
+    } else if (digits.length <= 4) {
+      // SS.hh
+      final hh = digits.substring(digits.length - 2);
+      final ss = digits.substring(0, digits.length - 2);
+      formatted = '$ss.$hh';
+    } else {
+      // M:SS.hh
+      final hh = digits.substring(digits.length - 2);
+      final ss = digits.substring(digits.length - 4, digits.length - 2);
+      final m = digits.substring(0, digits.length - 4);
+      formatted = '$m:$ss.$hh';
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
 }

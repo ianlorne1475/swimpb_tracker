@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -65,7 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildSettingsTile(
                     icon: Icons.file_upload_outlined,
                     title: 'Import Data',
-                    subtitle: 'Add data from an Excel/CSV file or photo scan.',
+                    subtitle: 'Add data from an Excel/CSV file.',
                     onTap: widget.onImportData,
                   ),
                   _buildSettingsTile(
@@ -208,7 +209,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: 'Exit App',
                     subtitle: 'Close the application cleanly.',
                     isDanger: true,
-                    onTap: () => SystemNavigator.pop(),
+                    onTap: () {
+                      _showDangerDialog(
+                        title: 'Exit Application',
+                        description: 'Are you sure you want to close SwimPB Tracker?',
+                        confirmText: 'Exit Now',
+                        showSwimmerSelector: false,
+                        onConfirm: (_) => exit(0),
+                      );
+                    },
                   ),
                   const SizedBox(height: 40),
                 ],

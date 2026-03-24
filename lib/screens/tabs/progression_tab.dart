@@ -199,13 +199,17 @@ class _ProgressionTabState extends State<ProgressionTab> {
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: Colors.white,
+                    foregroundColor: isDark ? Colors.white : AppColors.primary,
                   ),
                   child: const Row(
                     children: [
                       Text(
                         'Goal',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white),
+                        style: TextStyle(
+                          fontSize: 13, 
+                          fontWeight: FontWeight.w900, 
+                          color: isDark ? Colors.white : AppColors.primary
+                        ),
                       ),
                       SizedBox(width: 4),
                       Icon(Icons.track_changes, size: 20, color: Colors.blue),
@@ -290,6 +294,8 @@ class _ProgressionTabState extends State<ProgressionTab> {
                       aspectRatio: 1.2,
                       child: LineChart(
                         LineChartData(
+                          minX: -0.2,
+                          maxX: (events.length - 1) * 1.4 + 1.0,
                           minY: minY,
                           maxY: maxY,
                           lineTouchData: LineTouchData(
@@ -342,26 +348,15 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                   label: HorizontalLineLabel(
                                     show: true,
                                     alignment: Alignment.topRight,
-                                    padding: const EdgeInsets.only(right: 8, bottom: 4),
+                                    padding: const EdgeInsets.only(right: 4, bottom: 4),
                                     style: TextStyle(
                                       color: statusColor.withOpacity(0.85),
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w900,
                                       fontSize: 10,
                                       backgroundColor: Colors.transparent,
                                     ),
                                     labelResolver: (line) {
-                                      final duration = Duration(milliseconds: qt.timeMs);
-                                      final minutes = duration.inMinutes;
-                                      final seconds = duration.inSeconds % 60;
-                                      final hundredths = (qt.timeMs % 1000) ~/ 10;
-                                      
-                                      String formatted;
-                                      if (minutes > 0) {
-                                        formatted = '$minutes:${seconds.toString().padLeft(2, '0')}.${hundredths.toString().padLeft(2, '0')}';
-                                      } else {
-                                        formatted = '$seconds.${hundredths.toString().padLeft(2, '0')}';
-                                      }
-                                      return '${hasQualified ? 'Qualified' : 'Qualification'}: $formatted';
+                                      return '${hasQualified ? 'Qualified' : 'QT'}: ${TimeUtils.formatMsToTime(qt.timeMs)}';
                                     },
                                   ),
                                 ),
@@ -373,27 +368,16 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                   dashArray: [4, 4],
                                   label: HorizontalLineLabel(
                                     show: true,
-                                    alignment: Alignment.bottomRight,
-                                    padding: const EdgeInsets.only(right: 8, top: 4),
+                                    alignment: Alignment.topRight,
+                                    padding: const EdgeInsets.only(right: 4, bottom: 4),
                                       style: TextStyle(
                                       color: Colors.blue.withOpacity(0.85),
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w900,
                                       fontSize: 10,
                                       backgroundColor: Colors.transparent,
                                     ),
                                     labelResolver: (line) {
-                                      final duration = Duration(milliseconds: goal.timeMs);
-                                      final minutes = duration.inMinutes;
-                                      final seconds = duration.inSeconds % 60;
-                                      final hundredths = (goal.timeMs % 1000) ~/ 10;
-                                      
-                                      String formatted;
-                                      if (minutes > 0) {
-                                        formatted = '$minutes:${seconds.toString().padLeft(2, '0')}.${hundredths.toString().padLeft(2, '0')}';
-                                      } else {
-                                        formatted = '$seconds.${hundredths.toString().padLeft(2, '0')}';
-                                      }
-                                      return 'Goal: $formatted';
+                                      return 'Goal: ${TimeUtils.formatMsToTime(goal.timeMs)}';
                                     },
                                   ),
                                 ),
@@ -411,12 +395,37 @@ class _ProgressionTabState extends State<ProgressionTab> {
                               strokeWidth: 1,
                             ),
                           ),
-                          titlesData: const FlTitlesData(
+                          titlesData: FlTitlesData(
                             show: true,
-                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 22,
+                                getTitlesWidget: (value, meta) => const SizedBox.shrink(), // Dates are in tooltips
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 45,
+                                getTitlesWidget: (value, meta) {
+                                  if (value == meta.min || value == meta.max) return const SizedBox.shrink();
+                                  final duration = Duration(milliseconds: value.toInt());
+                                  final minutes = duration.inMinutes;
+                                  final seconds = duration.inSeconds % 60;
+                                  final hundredths = (value.toInt() % 1000) ~/ 10;
+                                  
+                                  if (minutes > 0) {
+                                    return Text('$minutes:${seconds.toString().padLeft(2, '0')}', 
+                                      style: TextStyle(color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary, fontSize: 10, fontWeight: FontWeight.bold));
+                                  }
+                                  return Text('$seconds.${hundredths.toString().padLeft(2, '0')}', 
+                                    style: TextStyle(color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary, fontSize: 10, fontWeight: FontWeight.bold));
+                                },
+                              ),
+                            ),
                           ),
                           borderData: FlBorderData(show: false),
                           lineBarsData: [

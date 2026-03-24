@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/goal.dart';
 import '../theme/app_theme.dart';
@@ -82,7 +83,11 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.timer_outlined),
               ),
-              keyboardType: TextInputType.text,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                TimeInputFormatter(),
+              ],
               autofocus: true,
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Please enter a time';

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../utils/time_utils.dart';
 import '../database_helper.dart';
@@ -256,6 +257,11 @@ class _AddMeetDialogState extends State<AddMeetDialog> {
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                           textAlign: TextAlign.right,
                           decoration: fieldDecoration('M:SS.hh'),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            TimeInputFormatter(),
+                          ],
                           validator: (v) => v!.isEmpty ? '' : null,
                         ),
                       ),
