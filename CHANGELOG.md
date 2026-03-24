@@ -7,9 +7,8 @@ This document tracks all changes, enhancements, and planned features for the Swi
 - **Tab Tooltips**: Restored missing tooltips for the primary navigation tabs. Implemented via `Tooltip` wrappers to ensure compatibility with all Flutter versions. (2026-03-24 11:01)
 - **Tooltip Styling**: Applied semi-transparent glassmorphism theme to all tooltips project-wide. (2026-03-24 10:47)
 - **Chart Annotations**: Optimized label placement (QT on top, Goal on bottom) to prevent overlaps and improved transparency. (2026-03-24 17:22)
-    - [x] **Chart Restoration**: Fixed a regression where Y-axis labels were hidden and the "Goal" button was invisible in light mode.
-    - [x] **Annotation Overlap Fix**: Repositioned labels (QT above line, Goal below line) to ensure perfect legibility when times are nearly identical. (2026-03-24 17:15)
-- **OCR Hardening (Parked)**: Finalized advanced grid extraction and strict garbage data filtering (header/zero-time rejection) before parking the feature in the roadmap for current stability. (2026-03-24 17:08)
+- **Chart Restoration**: Restored missing Y-axis time labels and fixed "Goal" button visibility/contrast in light mode. (2026-03-24 17:15)
+- **OCR Hardening (Parked)**: Finalized advanced grid extraction and strict garbage data filtering before parking the feature in the roadmap for current stability. (2026-03-24 17:08)
 
 ## [v1.0.3+9] - 2026-03-23
 ### Added

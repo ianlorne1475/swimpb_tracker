@@ -295,7 +295,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                       child: LineChart(
                         LineChartData(
                           minX: -0.2,
-                          maxX: (events.length - 1) * 1.4 + 1.0,
+                          maxX: (events.length - 1) * 1.7 + 1.2,
                           minY: minY,
                           maxY: maxY,
                           lineTouchData: LineTouchData(
