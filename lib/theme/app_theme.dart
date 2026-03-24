@@ -107,6 +107,16 @@ class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: AppColors.surface.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.primary.withOpacity(0.2), width: 1),
+        ),
+        textStyle: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+        waitDuration: const Duration(milliseconds: 500),
+        showDuration: const Duration(seconds: 2),
+      ),
     );
   }
 
@@ -192,6 +202,23 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: AppColors.lightSurface.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        textStyle: const TextStyle(color: AppColors.lightTextPrimary, fontSize: 12),
+        waitDuration: const Duration(milliseconds: 500),
+        showDuration: const Duration(seconds: 2),
       ),
     );
   }
