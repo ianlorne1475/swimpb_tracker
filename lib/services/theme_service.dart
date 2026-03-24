@@ -6,7 +6,12 @@ class ThemeService {
   factory ThemeService() => _instance;
   ThemeService._internal();
 
-  final ValueNotifier<ThemeMode> themeMode = ValueNotifier(PreferenceService().getThemeMode());
+  final ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.system);
+
+  /// Initializes the theme from preferences
+  void init() {
+    themeMode.value = PreferenceService().getThemeMode();
+  }
 
   void toggleTheme() {
     themeMode.value = themeMode.value == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;

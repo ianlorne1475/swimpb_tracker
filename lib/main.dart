@@ -15,6 +15,7 @@ void main() async {
   // Initialize persistence
   final prefs = PreferenceService();
   await prefs.init();
+  ThemeService().init();
   
   // Check for daily resets
   await ResetService().checkAndResetDailyData();

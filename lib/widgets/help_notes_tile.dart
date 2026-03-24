@@ -65,7 +65,7 @@ class HelpReleaseNotesTile extends StatelessWidget {
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
-                          'SwimPB Tracker v1.0.1',
+                          'SwimPB Tracker v1.1.0',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,

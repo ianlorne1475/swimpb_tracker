@@ -210,7 +210,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['csv', 'xlsx', 'json', 'jpg', 'jpeg', 'png'],
+        allowedExtensions: ['csv', 'xlsx', 'json', 'jpg', 'jpeg', 'png', 'zip'],
       );
 
       if (result != null) {
@@ -237,7 +237,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           
           if (results != null && results.isNotEmpty) {
             _showLoadingDialog();
-            debugPrint('OCR: Starting import of ${results.length} results');
+            // Start result processing
             int importedCount = 0;
             
             try {
@@ -245,7 +245,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               
               for (int index = 0; index < results.length; index++) {
                 final result = results[index];
-                debugPrint('OCR: Processing result $index: ${result['distance']} ${result['stroke']}');
                 
                 // Find or create the swimmer for THIS result
                 final fname = (result['swimmerFirstName'] ?? '').toString().trim();
@@ -262,7 +261,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   if (match != null) {
                     targetId = match.id;
                   } else {
-                    debugPrint('OCR: Creating new swimmer: $fname $sname');
+                      // Create swimmer...
                     final dobStr = result['swimmerDob']?.toString();
                     final dob = DateTime.tryParse(dobStr ?? '') ?? DateTime(2000, 1, 1);
                     targetId = await _dbHelper.insertSwimmer(Swimmer(
@@ -306,13 +305,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   }
                 }
               }
-              debugPrint('OCR: Import loop finished. Imported $importedCount items.');
+              // Import finished
             } catch (e) {
-              debugPrint('OCR ERROR: $e');
               rethrow;
             } finally {
               _hideLoadingDialog();
-              debugPrint('OCR: Loading dialog hidden');
             }
             
             if (mounted) {
