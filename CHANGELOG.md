@@ -4,7 +4,7 @@ This document tracks all changes, enhancements, and planned features for the Swi
 
 ## [v1.0.3+9] - 2026-03-24
 ### Fixed (Today)
-- **Tab Tooltips**: Restored missing tooltips for the primary navigation tabs. (2026-03-24 10:46)
+- **Tab Tooltips**: Restored missing tooltips for the primary navigation tabs. Implemented via `Tooltip` wrappers to ensure compatibility with all Flutter versions. (2026-03-24 11:01)
 - **Tooltip Styling**: Applied semi-transparent glassmorphism theme to all tooltips project-wide. (2026-03-24 10:47)
 - **Chart Annotations**: Repositioned Qualification and Goal labels to the top-right and made their backgrounds **fully transparent**. (2026-03-24 10:53)
 
