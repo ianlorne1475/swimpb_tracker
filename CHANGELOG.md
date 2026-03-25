@@ -2,7 +2,11 @@
 
 This document tracks all changes, enhancements, and planned features for the SwimPB Tracker application.
     
-## [v1.1.1] - 2026-03-25
+## [v1.1.2] - 2026-03-25
+### Fixed
+- **SNAG QTs (Male)**: Resolved a critical issue where male qualification times were not being seeded in the production app. (2026-03-25 06:55)
+- **Gender Export**: Fixed missing gender field in CSV and XLSX exports to ensure data integrity during import/export. (2026-03-25 07:12)
+- **Database Seeding**: Optimized the standards initialization to use a "seed once" guard, preventing duplicate entries and improving startup time. (2026-03-25 07:10)
 ### Added
 - Preparing for next development cycle. (2026-03-25 06:47)
 

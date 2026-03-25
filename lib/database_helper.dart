@@ -7,6 +7,7 @@ import 'models/meet.dart';
 import 'models/event.dart';
 import 'models/qualifying_time.dart';
 import 'models/goal.dart';
+import 'models/goal.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -517,7 +518,7 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getEventsForExport(int swimmerId, {String? course}) async {
     Database db = await database;
     String query = '''
-      SELECT s.firstName, s.surname, s.dob, s.nationality, s.club, s.photoPath,
+      SELECT s.firstName, s.surname, s.dob, s.gender, s.nationality, s.club, s.photoPath,
              m.title as meetTitle, m.date as meetDate, m.course,
              e.distance, e.stroke, e.timeMs, 'Result' as dataType
       FROM events e
@@ -539,7 +540,7 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getGoalsForExport(int swimmerId) async {
     Database db = await database;
     return await db.rawQuery('''
-      SELECT s.firstName, s.surname, s.dob, s.nationality, s.club, s.photoPath,
+      SELECT s.firstName, s.surname, s.dob, s.gender, s.nationality, s.club, s.photoPath,
              'Goal' as meetTitle, g.targetDate as meetDate, g.course,
              g.distance, g.stroke, g.timeMs, 'Goal' as dataType
       FROM swimmer_goals g

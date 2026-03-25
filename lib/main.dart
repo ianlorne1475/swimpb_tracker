@@ -5,6 +5,7 @@ import 'services/reset_service.dart';
 import 'screens/main_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/theme_service.dart';
+import 'services/qualifying_times_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,9 @@ void main() async {
   
   // Check for daily resets
   await ResetService().checkAndResetDailyData();
+
+  // Initial seeding of standards
+  await QualifyingTimesService().seedAllStandards();
   
   runApp(const SwimPBTrackerApp());
 }

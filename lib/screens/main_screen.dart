@@ -67,7 +67,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     _tabController = TabController(length: 4, vsync: this);
 
     _loadSwimmers();
-    QualifyingTimesService().seedSnag2026Female();
   }
 
   @override

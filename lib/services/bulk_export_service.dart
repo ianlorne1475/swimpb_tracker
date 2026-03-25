@@ -7,7 +7,9 @@ import 'package:path/path.dart' as path;
 import '../database_helper.dart';
 
 class BulkExportService {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
+  final DatabaseHelper _dbHelper;
+
+  BulkExportService({DatabaseHelper? dbHelper}) : _dbHelper = dbHelper ?? DatabaseHelper();
 
   Future<String> getSwimmerCsvContent(int swimmerId) async {
     final List<Map<String, dynamic>> events = await _dbHelper.getEventsForExport(swimmerId);
@@ -20,6 +22,7 @@ class BulkExportService {
     rows.add([
       'FirstName', 
       'Surname', 
+      'Gender',
       'DOB', 
       'Nationality', 
       'MeetTitle', 
@@ -37,6 +40,7 @@ class BulkExportService {
       rows.add([
         data['firstName'],
         data['surname'],
+        data['gender'] ?? 'Female',
         data['dob'],
         data['nationality'],
         data['meetTitle'],
@@ -69,6 +73,7 @@ class BulkExportService {
     sheet.appendRow([
       TextCellValue('FirstName'), 
       TextCellValue('Surname'), 
+      TextCellValue('Gender'),
       TextCellValue('DOB'), 
       TextCellValue('Nationality'), 
       TextCellValue('MeetTitle'), 
@@ -86,6 +91,7 @@ class BulkExportService {
       sheet.appendRow([
         TextCellValue(data['firstName']?.toString() ?? ''),
         TextCellValue(data['surname']?.toString() ?? ''),
+        TextCellValue(data['gender']?.toString() ?? 'Female'),
         TextCellValue(data['dob']?.toString() ?? ''),
         TextCellValue(data['nationality']?.toString() ?? ''),
         TextCellValue(data['meetTitle']?.toString() ?? ''),
@@ -130,6 +136,7 @@ class BulkExportService {
       sheet.appendRow([
         TextCellValue('FirstName'), 
         TextCellValue('Surname'), 
+        TextCellValue('Gender'),
         TextCellValue('DOB'), 
         TextCellValue('Nationality'), 
         TextCellValue('MeetTitle'), 
@@ -147,6 +154,7 @@ class BulkExportService {
         sheet.appendRow([
           TextCellValue(data['firstName']?.toString() ?? ''),
           TextCellValue(data['surname']?.toString() ?? ''),
+          TextCellValue(data['gender']?.toString() ?? 'Female'),
           TextCellValue(data['dob']?.toString() ?? ''),
           TextCellValue(data['nationality']?.toString() ?? ''),
           TextCellValue(data['meetTitle']?.toString() ?? ''),

@@ -1,4 +1,4 @@
-import '../database_helper.dart';
+import 'package:swimpb_tracker/database_helper.dart';
 import '../models/qualifying_time.dart';
 
 class QualifyingTimesService {

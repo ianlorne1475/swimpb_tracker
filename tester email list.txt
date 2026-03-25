@@ -40,3 +40,5 @@ Improved Data Sync
 - Modernized UI with premium semi-transparent interactive tooltips.
 - Improved visibility and interaction states for Light Mode users.
 - App performance improvements for a smoother, faster experience.
+
+please prepare release version, do any required testing, sign the app, backup to github and prepare debug APK, release APK and aab file
