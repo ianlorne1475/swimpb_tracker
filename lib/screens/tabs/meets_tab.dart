@@ -21,6 +21,7 @@ class _MeetsTabState extends State<MeetsTab> {
   final _dbHelper = DatabaseHelper();
   late Future<List<SwimMeet>> _meetsFuture;
   String _selectedCourse = 'All';
+  Set<int> _pbEventIds = {};
 
   @override
   void initState() {
@@ -40,6 +41,32 @@ class _MeetsTabState extends State<MeetsTab> {
     setState(() {
       _meetsFuture = _dbHelper.getMeetsBySwimmer(widget.swimmerId, course: _selectedCourse);
     });
+    _calculatePBs();
+  }
+
+  Future<void> _calculatePBs() async {
+    final allEvents = await _dbHelper.getEventsBySwimmer(widget.swimmerId);
+    // getEventsBySwimmer returns date DESC, reverse for chronological processing
+    final sortedEvents = allEvents.reversed.toList();
+    
+    final Set<int> pbIds = {};
+    final Map<String, int> bestTimes = {};
+
+    for (final event in sortedEvents) {
+      final key = "${event.distance}-${event.stroke}-${event.course}";
+      final currentTime = event.timeMs;
+      
+      if (!bestTimes.containsKey(key) || currentTime < bestTimes[key]!) {
+        pbIds.add(event.id!);
+        bestTimes[key] = currentTime;
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _pbEventIds = pbIds;
+      });
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context, SwimMeet meet) async {
@@ -330,22 +357,52 @@ class _MeetsTabState extends State<MeetsTab> {
                 child: ListView(
                   shrinkWrap: true,
                   physics: const ClampingScrollPhysics(),
-                  children: events.map((event) => ListTile(
-                    title: Text(
-                      '${event.distance}m ${event.stroke}',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                    ),
-                    trailing: Text(
-                      event.formattedTime,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                        color: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
-                        letterSpacing: -0.5,
+                  children: events.map((event) {
+                    final isPb = _pbEventIds.contains(event.id);
+                    return ListTile(
+                      title: Text(
+                        '${event.distance}m ${event.stroke}',
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
-                    ),
-                    dense: false,
-                  )).toList(),
+                      trailing: SizedBox(
+                        width: 110, // Sufficient width for both badge and time
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (isPb)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                                ),
+                                child: const Text(
+                                  'PB',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.amber,
+                                  ),
+                                ),
+                              ),
+                            const Spacer(),
+                            Text(
+                              event.formattedTime,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                                color: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      dense: false,
+                    );
+                  }).toList(),
                 ),
               );
             },

@@ -34,6 +34,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
   late String _stroke;
   late String _course;
   String _timeframe = 'All Time';
+  int? _touchedIndex;
 
   @override
   void initState() {
@@ -131,6 +132,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                   items: _getValidDistances().map((d) => DropdownMenuItem(value: d, child: Text('${d}m'))).toList(),
                   onChanged: (v) => setState(() {
                     _distance = v!;
+                    _touchedIndex = null;
                     widget.onSelectionChanged(_distance, _stroke, _course);
                   }),
                 ),
@@ -142,6 +144,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                       .toList(),
                   onChanged: (v) => setState(() {
                     _stroke = v!;
+                    _touchedIndex = null;
                     _validateDistance();
                     widget.onSelectionChanged(_distance, _stroke, _course);
                   }),
@@ -152,6 +155,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                   items: ['SCM', 'LCM'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                   onChanged: (v) => setState(() {
                     _course = v!;
+                    _touchedIndex = null;
                     _validateDistance();
                     widget.onSelectionChanged(_distance, _stroke, _course);
                   }),
@@ -162,7 +166,10 @@ class _ProgressionTabState extends State<ProgressionTab> {
                   items: ['6 Months', '1 Year', '2 Years', 'All Time']
                       .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                       .toList(),
-                  onChanged: (v) => setState(() => _timeframe = v!),
+                  onChanged: (v) => setState(() {
+                    _timeframe = v!;
+                    _touchedIndex = null;
+                  }),
                 ),
                 const SizedBox(width: 16),
                 TextButton(
@@ -240,7 +247,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
 
                 final bool hasMetGoal = (events != null && goal != null) && events.any((e) => e.timeMs <= goal.timeMs);
 
-                if (events == null || events.length < 2) {
+                if (events == null || events.length < 3) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -248,7 +255,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                         Icon(Icons.show_chart_rounded, size: 48, color: AppColors.textSecondary.withOpacity(0.5)),
                         const SizedBox(height: 16),
                         Text(
-                          'ADD 2+ RESULTS FOR PROGRESSION',
+                          '3+ RESULTS REQUIRED FOR A CHART',
                           style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1),
                         ),
                       ],
@@ -283,6 +290,35 @@ class _ProgressionTabState extends State<ProgressionTab> {
                 minY -= range * 0.2;
                 maxY += range * 0.2;
 
+                final mainBarData = LineChartBarData(
+                  spots: spots,
+                  isCurved: true,
+                  curveSmoothness: 0.35,
+                  color: AppColors.primary,
+                  barWidth: 2,
+                  isStrokeCapRound: true,
+                  dotData: FlDotData(
+                    show: true,
+                    getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                      radius: 3,
+                      color: Colors.white,
+                      strokeWidth: 1.5,
+                      strokeColor: AppColors.primary,
+                    ),
+                  ),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.3),
+                        AppColors.primary.withOpacity(0.0),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                );
+
                 return Card(
                   margin: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(
@@ -300,6 +336,34 @@ class _ProgressionTabState extends State<ProgressionTab> {
                           minY: minY,
                           maxY: maxY,
                           lineTouchData: LineTouchData(
+                            handleBuiltInTouches: false,
+                            touchCallback: (FlTouchEvent event, LineTouchResponse? touchResponse) {
+                              if (event is FlTapUpEvent || event is FlPanEndEvent || event is FlLongPressEnd) {
+                                setState(() {
+                                  if (touchResponse != null && touchResponse.lineBarSpots != null && touchResponse.lineBarSpots!.isNotEmpty) {
+                                    _touchedIndex = touchResponse.lineBarSpots![0].spotIndex;
+                                  } else {
+                                    _touchedIndex = null;
+                                  }
+                                });
+                              }
+                            },
+                            getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
+                              return spotIndexes.map((index) {
+                                return TouchedSpotIndicatorData(
+                                  FlLine(color: Colors.transparent), // Using VerticalLine in extraLinesData instead
+                                  FlDotData(
+                                    show: true,
+                                    getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                                      radius: 6,
+                                      color: AppColors.primary,
+                                      strokeWidth: 2,
+                                      strokeColor: Colors.white,
+                                    ),
+                                  ),
+                                );
+                              }).toList();
+                            },
                             touchTooltipData: LineTouchTooltipData(
                               tooltipBgColor: isDark ? AppColors.surface : Colors.white,
                               tooltipRoundedRadius: 8,
@@ -383,6 +447,15 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                   ),
                                 ),
                             ],
+                            verticalLines: [
+                              if (_touchedIndex != null)
+                                VerticalLine(
+                                  x: _touchedIndex!.toDouble(),
+                                  color: AppColors.primary.withOpacity(0.35),
+                                  strokeWidth: 2,
+                                  dashArray: [5, 5],
+                                ),
+                            ],
                           ),
                           gridData: FlGridData(
                             show: true,
@@ -429,36 +502,12 @@ class _ProgressionTabState extends State<ProgressionTab> {
                             ),
                           ),
                           borderData: FlBorderData(show: false),
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: spots,
-                              isCurved: true,
-                              curveSmoothness: 0.35,
-                              color: AppColors.primary,
-                              barWidth: 2,
-                              isStrokeCapRound: true,
-                              dotData: FlDotData(
-                                show: true,
-                                getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                                  radius: 3,
-                                  color: Colors.white,
-                                  strokeWidth: 1.5,
-                                  strokeColor: AppColors.primary,
-                                ),
-                              ),
-                              belowBarData: BarAreaData(
-                                show: true,
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary.withOpacity(0.3),
-                                    AppColors.primary.withOpacity(0.0),
-                                  ],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                ),
-                              ),
-                            ),
-                          ],
+                          showingTooltipIndicators: _touchedIndex != null ? [
+                            ShowingTooltipIndicators([
+                              LineBarSpot(mainBarData, 0, mainBarData.spots[_touchedIndex!]),
+                            ]),
+                          ] : [],
+                          lineBarsData: [mainBarData],
                         ),
                       ),
                     ),

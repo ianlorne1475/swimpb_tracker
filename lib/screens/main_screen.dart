@@ -65,6 +65,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
 
     _loadSwimmers();
   }
@@ -617,47 +622,15 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             
             if (_selectedSwimmer != null)
               Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    PersonalBestsTab(
-                      key: ValueKey('pb_${_selectedSwimmer!.id}_$_refreshCounter'),
-                      swimmerId: _selectedSwimmer!.id!,
-                    ),
-                    RecentBestsTab(
-                      key: ValueKey('recent_${_selectedSwimmer!.id}_$_refreshCounter'),
-                      swimmerId: _selectedSwimmer!.id!,
-                      initialDistance: _selectedDistance,
-                      initialStroke: _selectedStroke,
-                      initialCourse: _selectedCourse,
-                      onSelectionChanged: (d, s, c) {
-                        setState(() {
-                          _selectedDistance = d;
-                          _selectedStroke = s;
-                          _selectedCourse = c;
-                        });
-                      },
-                    ),
-                    ProgressionTab(
-                      key: ValueKey('prog_${_selectedSwimmer!.id}_$_refreshCounter'),
-                      swimmerId: _selectedSwimmer!.id!,
-                      initialDistance: _selectedDistance,
-                      initialStroke: _selectedStroke,
-                      initialCourse: _selectedCourse,
-                      onSelectionChanged: (d, s, c) {
-                        setState(() {
-                          _selectedDistance = d;
-                          _selectedStroke = s;
-                          _selectedCourse = c;
-                        });
-                      },
-                    ),
-                    MeetsTab(
-                      key: ValueKey('meets_${_selectedSwimmer!.id}_$_refreshCounter'),
-                      swimmerId: _selectedSwimmer!.id!,
-                      onDataChanged: _loadSwimmerData,
-                    ),
-                  ],
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    );
+                  },
+                  child: _buildTabContent(),
                 ),
               ),
             ],
@@ -668,6 +641,56 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     ),
   );
 }
+
+  Widget _buildTabContent() {
+    if (_selectedSwimmer == null) return const SizedBox.shrink();
+    
+    switch (_tabController.index) {
+      case 0:
+        return PersonalBestsTab(
+          key: ValueKey('pb_${_selectedSwimmer!.id}_$_refreshCounter'),
+          swimmerId: _selectedSwimmer!.id!,
+        );
+      case 1:
+        return RecentBestsTab(
+          key: ValueKey('recent_${_selectedSwimmer!.id}_$_refreshCounter'),
+          swimmerId: _selectedSwimmer!.id!,
+          initialDistance: _selectedDistance,
+          initialStroke: _selectedStroke,
+          initialCourse: _selectedCourse,
+          onSelectionChanged: (d, s, c) {
+            setState(() {
+              _selectedDistance = d;
+              _selectedStroke = s;
+              _selectedCourse = c;
+            });
+          },
+        );
+      case 2:
+        return ProgressionTab(
+          key: ValueKey('prog_${_selectedSwimmer!.id}_$_refreshCounter'),
+          swimmerId: _selectedSwimmer!.id!,
+          initialDistance: _selectedDistance,
+          initialStroke: _selectedStroke,
+          initialCourse: _selectedCourse,
+          onSelectionChanged: (d, s, c) {
+            setState(() {
+              _selectedDistance = d;
+              _selectedStroke = s;
+              _selectedCourse = c;
+            });
+          },
+        );
+      case 3:
+        return MeetsTab(
+          key: ValueKey('meets_${_selectedSwimmer!.id}_$_refreshCounter'),
+          swimmerId: _selectedSwimmer!.id!,
+          onDataChanged: _loadSwimmerData,
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 
   void _handleExportData() async {
     if (_swimmers.isEmpty) {

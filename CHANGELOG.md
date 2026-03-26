@@ -2,6 +2,12 @@
 
 This document tracks all changes, enhancements, and planned features for the SwimPB Tracker application.
     
+## [v1.1.5] - 2026-03-26
+### Added
+- **Historical PB Milestones**: Implemented automatic "PB" badges in the History (Meets) tab for races that were a personal best at the time they occurred. (2026-03-26 16:35)
+- **Smooth Tab Transitions**: Replaced the default sliding tab transition with a premium 300ms cross-fade using `AnimatedSwitcher` for a more modern feel. (2026-03-26 16:55)
+- **SwimCloud to SwimPB Converter**: Added a standalone Python utility in `scripts/` to extract historical data from SwimCloud.com and convert it to SwimPB CSV format. (2026-03-26 17:40)
+
 ## [v1.1.4] - 2026-03-26
 ### Added
 - **Qualification Times Viewer**: Implementation of a comprehensive standards viewer for SNAG 2026, accessible via the Settings menu. (2026-03-25 21:30)
@@ -12,7 +18,10 @@ This document tracks all changes, enhancements, and planned features for the Swi
 - **Qualification Viewer UI**: Refined event group headers to match the card body (transparent background) while maintaining the requested white text style. (2026-03-26 07:25)
 - **App Help Section Update**: Synchronized in-app documentation with the latest v1.1.4 feature set, including SNAG 2026 standards and History tab filtering. (2026-03-26 08:30)
 - **Collapsible Help Sections**: Implemented a stateful, collapsible UI for the "Settings Menu", "Importing Data", "Technical Details", and "Additional Information" help sections to reduce clutter. (2026-03-26 09:05)
-- **Chart UI Refinement**: Reduced the thickness of progression, QT, and goal lines in the Chart tab by half for a more elegant, professional aesthetic. (2026-03-26 09:25)
+- **Chart Visual Refinement**: Reduced the thickness of graph lines (Progression, QT, and Goal) by 50% for a more refined and premium look in the "Chart" tab. (2026-03-26 09:25)
+- **Persistent Tooltips**: Enhanced the charting experience by making data point tooltips persist after selection. They remain visible until a new point is selected or the chart background is tapped. (2026-03-26 13:40)
+- **Vertical Tooltip Connectors**: Implemented a full-height dashed vertical line that visually links selected data points to their persistent tooltips at the top and the date axis at the bottom. (2026-03-26 14:05)
+- **Chart Data Requirement**: Increased the minimum data points required to render a chart from 2 to 3, with an updated user message: "3+ RESULTS REQUIRED FOR A CHART". (2026-03-26 16:25)
 
 ## [v1.1.3] - 2026-03-25
 ### Fixed
@@ -53,17 +62,19 @@ This document tracks all changes, enhancements, and planned features for the Swi
 ## Future Enhancements & Roadmap
 
 ### 📱 User Interface & Experience
+- [ ] **Visual Polish**: Custom stroke icons (Fly, Back, Breast, Free, IM) and enhanced micro-interactions for tab transitions.
 - [ ] **Sharing Feature**: Implement "Share with a Friend" in the Settings menu.
 - [ ] **Smart Notifications**: Goal-proximity alerts and automatic "Qualification Watch" notifications.
 
-### 💾 Data & Architecture
-- [ ] **Relational Export Format**: Redesign XLSX/CSV exports to separate Swimmer Profiles from Results/Goals for better data integrity and reduced file size.
+### 💾 Data & Analytics
+- [ ] **Meet Analytics Dashboard**: High-level summaries including "Most Improved Stroke," meet counts, and success rates for goals/QTs.
+- [ ] **Enhanced Goal Tracking**: Display interim "step" goals directly on the Progression charts.
+- [ ] **Quick-Add Actions**: Memory-aware data entry (last meet/date) and quick duplication of events in History.
 - [ ] **Split Times Support**: Enable recording of 25m (SCM) and 50m (LCM) splits for detailed performance analysis.
-- [ ] **Cloud Sync**: Firebase integration for secure multi-device backup.
-- [ ] **User Authentication**: Secure login via Google, Facebook, and Email.
-- [ ] **Wearable Sync**: Integration with Garmin and Apple Watch.
+- [ ] **Relational Export Format**: Redesign XLSX/CSV exports to separate Swimmer Profiles from Results/Goals.
 
-### 🏆 OCR & Automated Data Entry
-- [x] **OCR Hardening (v1.1.0 Ready)**: Advanced grid extraction and strict garbage filtering. Reliability ~85%. Parked to prioritize file-based stability.
-- [ ] **Season Planner**: Group meets into seasons and set "Target Meet" goals with a Taper Visualizer.
+### 🏆 Advanced Features
+- [ ] **Season Planner**: Group meets into seasons and set "Target Meet" goals with a Taper Visualizer and countdown widgets.
+- [ ] **Cloud Sync**: Firebase integration for secure multi-device backup and user authentication.
 - [ ] **Coach/Parent Portal**: Secure, view-only access for real-time progress monitoring.
+- [ ] **Wearable Sync**: Integration with Garmin and Apple Watch.
