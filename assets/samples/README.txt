@@ -1,4 +1,4 @@
-SwimPB Tracker v1.0.1 help and release notes
+SwimPB Tracker v1.1.4 help and release notes
 
 This README file is intended to answer some basic questions related to app content and function.
 
@@ -17,9 +17,11 @@ The settings menu allows the user to manage the following:
 2. Bulk import swimmer data from .xlsx, .csv or photo files (OCR). Download sample file here.
 3. Bulk export swimmer data to either a .xlsx or .csv file.
 4. Generate various reports for personal bests, national qualification and personal goals.
-5. Toggle the app from light mode to dark mode.
-6. Delete a swimmer profile and their swim data.
-7. Delete swim data for a selected swimmer.
+5. View and filter qualification standards for SNAG 2026.
+6. Toggle the app from light mode to dark mode.
+7. Delete a swimmer profile and their swim data.
+8. Delete swim data for a selected swimmer.
+9. Perform a factory reset (Clear All Data).
 
 ## Importing & Exporting Data
 Managing your data is simple, whether you're tracking one swimmer or a whole team:
@@ -48,15 +50,19 @@ Additional information:
 
 The app includes the LCM qualification times as used for the SNAG 2026 meet.
 
+The "Qualification Times" viewer in the Settings menu allows users to browse all 54 qualification standards at a glance. It features a high-density, row-based layout and a 5-way stroke selector (Butterfly, Backstroke, Breaststroke, Freestyle, IM) for fast navigation between event types.
+
 Any time in the PB tab that meets the qualification time is annotated with a gold QT badge. All LCM PB times also include the delta between the PB and QT times. 
 
 Any times in the Recent tab that meet the qualification time are annotated with a gold QT badge.
 
 The graphs displayed in the Chart tab for LCM selections include the qualification standard as a green horizontal line on the graph.
 
-Additionally, users can set their own custom target "Goals" for any event. This is done by tapping the bulls-eye icon on the Chart tab. Custom goals are displayed as blue dashed lines on the graphs, and as a target time on the PB and Recent tabs.
+Additionally, users can set their own custom target "Goals" for any event. This is done by tapping the bulls-eye icon on the Chart tab. Custom goals are displayed as blue dashed lines on the graphs, and as a target time on the PB and Recent tabs. 
 
-For meet records on the History tab SCM meets are annotated in blue, LCM meets are annotated in green.
+When generating reports from Settings, you will be prompted to select the specific swimmer for whom the report is intended.
+
+For meet records on the History tab, users can now quickly toggle between All, SCM, and LCM meets using the three-way course filter at the top. SCM meets are annotated in blue, and LCM meets are annotated in green.
 
 Swimmer age is calculated as of the 31st December, this is in line with Singapore Aquatics policy.
 

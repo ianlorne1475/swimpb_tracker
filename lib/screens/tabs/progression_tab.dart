@@ -344,7 +344,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                 HorizontalLine(
                                   y: qt.timeMs.toDouble(),
                                   color: AppColors.accent.withOpacity(0.8),
-                                  strokeWidth: 2,
+                                  strokeWidth: 1,
                                   dashArray: [8, 4],
                                   label: HorizontalLineLabel(
                                     show: true,
@@ -365,7 +365,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
                                 HorizontalLine(
                                   y: goal.timeMs.toDouble(),
                                   color: Colors.blue.withOpacity(0.8),
-                                  strokeWidth: 2,
+                                  strokeWidth: 1,
                                   dashArray: [4, 4],
                                   label: HorizontalLineLabel(
                                     show: true,
@@ -435,14 +435,14 @@ class _ProgressionTabState extends State<ProgressionTab> {
                               isCurved: true,
                               curveSmoothness: 0.35,
                               color: AppColors.primary,
-                              barWidth: 4,
+                              barWidth: 2,
                               isStrokeCapRound: true,
                               dotData: FlDotData(
                                 show: true,
                                 getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                                  radius: 5,
+                                  radius: 3,
                                   color: Colors.white,
-                                  strokeWidth: 3,
+                                  strokeWidth: 1.5,
                                   strokeColor: AppColors.primary,
                                 ),
                               ),

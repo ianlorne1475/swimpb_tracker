@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../services/theme_service.dart';
+import 'qualifying_times_screen.dart';
 import '../widgets/help_notes_tile.dart';
 import '../widgets/feedback_dialog.dart';
 import '../models/swimmer.dart';
@@ -15,7 +16,7 @@ class SettingsScreen extends StatefulWidget {
   final VoidCallback onAddSwimmer;
   final VoidCallback onImportData;
   final VoidCallback onExportData;
-  final VoidCallback onReports;
+  final Function(Swimmer) onReports;
   final Function(Swimmer?) onDeleteRaceData;
   final VoidCallback onClearAllData;
   final Function(Swimmer) onDeleteSwimmer;
@@ -82,7 +83,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.assessment_outlined,
                     title: 'Generate Reports',
                     subtitle: 'Create PDF reports for results and goals.',
-                    onTap: widget.onReports,
+                    onTap: () {
+                      final candidates = currentSwimmers.where((s) => idsWithResults.contains(s.id)).toList();
+                      if (candidates.isNotEmpty) {
+                        _showSwimmerSelectorDialog(
+                          title: 'Select Swimmer for Report',
+                          description: 'Choose a swimmer to generate their performance or goals report:',
+                          confirmText: 'Generate Report',
+                          swimmers: candidates,
+                          onConfirm: (swimmer) => widget.onReports(swimmer),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('No swimmers with results available for reports.')),
+                        );
+                      }
+                    },
+                  ),
+                  _buildSettingsTile(
+                    icon: Icons.verified_outlined,
+                    title: 'Qualification Times',
+                    subtitle: 'View current SNAG qualification standards.',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const QualifyingTimesScreen()),
+                      );
+                    },
                   ),
                   _buildSettingsTile(
                     icon: Icons.feedback_outlined,
@@ -269,6 +296,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showSwimmerSelectorDialog({
+    required String title,
+    required String description,
+    required String confirmText,
+    required List<Swimmer> swimmers,
+    required Function(Swimmer) onConfirm,
+  }) {
+    Swimmer? selectedSwimmer;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(description, style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<Swimmer>(
+                  decoration: InputDecoration(
+                    labelText: 'Select Swimmer',
+                    prefixIcon: const Icon(Icons.person_pin_outlined, color: AppColors.primary),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.primary.withOpacity(0.05),
+                  ),
+                  hint: const Text('Choose a swimmer'),
+                  value: selectedSwimmer,
+                  isExpanded: true,
+                  items: swimmers.map((swimmer) {
+                    return DropdownMenuItem<Swimmer>(
+                      value: swimmer,
+                      child: Text(swimmer.fullName, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() => selectedSwimmer = value);
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: selectedSwimmer == null ? null : () {
+                  Navigator.pop(context);
+                  onConfirm(selectedSwimmer!);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                child: Text(confirmText),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   void _showDangerDialog({
     required String title,
     required String description,
@@ -422,7 +527,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
             const Text('SwimPB Tracker', style: TextStyle(fontWeight: FontWeight.bold)),
-            const Text('v1.1.0', style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal)),
+            const Text('v1.1.4', style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal)),
           ],
         ),
         content: Column(

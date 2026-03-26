@@ -20,6 +20,7 @@ class MeetsTab extends StatefulWidget {
 class _MeetsTabState extends State<MeetsTab> {
   final _dbHelper = DatabaseHelper();
   late Future<List<SwimMeet>> _meetsFuture;
+  String _selectedCourse = 'All';
 
   @override
   void initState() {
@@ -37,7 +38,7 @@ class _MeetsTabState extends State<MeetsTab> {
 
   void _refreshMeets() {
     setState(() {
-      _meetsFuture = _dbHelper.getMeetsBySwimmer(widget.swimmerId);
+      _meetsFuture = _dbHelper.getMeetsBySwimmer(widget.swimmerId, course: _selectedCourse);
     });
   }
 
@@ -84,60 +85,108 @@ class _MeetsTabState extends State<MeetsTab> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return FutureBuilder<List<SwimMeet>>(
-      future: _meetsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.history_rounded, size: 48, color: AppColors.textSecondary.withOpacity(0.5)),
-                const SizedBox(height: 16),
-                Text(
-                  'NO MEETS RECORDED',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 2),
-                ),
-              ],
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Card(
+            margin: EdgeInsets.zero,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: isDark ? AppColors.border : AppColors.lightBorder,
+                width: 1,
+              ),
             ),
-          );
-        }
-
-        final meets = snapshot.data!;
-        
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 700;
-            
-            if (isWide) {
-              return GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 1.4,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'All', label: Text('ALL'), icon: Icon(Icons.all_inclusive_rounded, size: 16)),
+                  ButtonSegment(value: 'LCM', label: Text('LCM'), icon: Icon(Icons.pool_rounded, size: 16)),
+                  ButtonSegment(value: 'SCM', label: Text('SCM'), icon: Icon(Icons.waves_rounded, size: 16)),
+                ],
+                selected: {_selectedCourse},
+                showSelectedIcon: false,
+                onSelectionChanged: (Set<String> newSelection) {
+                  setState(() {
+                    _selectedCourse = newSelection.first;
+                    _refreshMeets();
+                  });
+                },
+                style: SegmentedButton.styleFrom(
+                  backgroundColor: isDark ? AppColors.surface : Colors.white,
+                  selectedBackgroundColor: AppColors.primary,
+                  selectedForegroundColor: Colors.white,
+                  foregroundColor: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
+                  visualDensity: VisualDensity.compact,
+                  textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  side: BorderSide.none, // Hide default border to use Card's border
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                 ),
-                itemCount: meets.length,
-                itemBuilder: (context, index) {
-                  return _buildMeetCard(context, meets[index], isDark);
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: FutureBuilder<List<SwimMeet>>(
+            future: _meetsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.history_rounded, size: 48, color: AppColors.textSecondary.withOpacity(0.5)),
+                      const SizedBox(height: 16),
+                      Text(
+                        _selectedCourse == 'All' ? 'NO MEETS RECORDED' : 'NO $_selectedCourse MEETS',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 2),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final meets = snapshot.data!;
+              
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth > 700;
+                  
+                  if (isWide) {
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 1.4,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      itemCount: meets.length,
+                      itemBuilder: (context, index) {
+                        return _buildMeetCard(context, meets[index], isDark);
+                      },
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: meets.length,
+                    itemBuilder: (context, index) {
+                      return _buildMeetCard(context, meets[index], isDark);
+                    },
+                  );
                 },
               );
-            }
-
-            return ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: meets.length,
-              itemBuilder: (context, index) {
-                return _buildMeetCard(context, meets[index], isDark);
-              },
-            );
-          },
-        );
-      },
+            },
+          ),
+        ),
+      ],
     );
   }
 

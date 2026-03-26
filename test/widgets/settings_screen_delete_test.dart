@@ -15,6 +15,7 @@ void main() {
     Function(Swimmer)? onDeleteSwimmer,
     Function(Swimmer?)? onDeleteRaceData,
     VoidCallback? onClearAllData,
+    Function(Swimmer)? onReports,
   }) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
@@ -28,7 +29,7 @@ void main() {
         onAddSwimmer: () {},
         onImportData: () {},
         onExportData: () {},
-        onReports: () {},
+        onReports: onReports ?? (_) {},
         onDeleteRaceData: onDeleteRaceData ?? (_) {},
         onClearAllData: onClearAllData ?? () {},
         onDeleteSwimmer: onDeleteSwimmer ?? (_) {},
@@ -36,6 +37,43 @@ void main() {
     ));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('Generate Reports shows swimmer selection dialog', (WidgetTester tester) async {
+    final swimmersNotifier = ValueNotifier<List<Swimmer>>(swimmersSeed);
+    final idsWithResultsNotifier = ValueNotifier<Set<int>>({1}); // Only Ian has results
+    Swimmer? reportedSwimmer;
+
+    await setupSettingsScreen(
+      tester,
+      swimmersNotifier: swimmersNotifier,
+      idsWithResultsNotifier: idsWithResultsNotifier,
+      onReports: (s) => reportedSwimmer = s,
+    );
+
+    final reportTile = find.widgetWithText(ListTile, 'Generate Reports');
+    await tester.scrollUntilVisible(reportTile, 500.0);
+    await tester.tap(reportTile);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Select Swimmer for Report'), findsOneWidget);
+    
+    // Tap dropdown
+    await tester.tap(find.byType(DropdownButtonFormField<Swimmer>));
+    await tester.pumpAndSettle();
+
+    // Ian should be there, Sarah should NOT (no results)
+    expect(find.text('Ian Hawkins'), findsAtLeastNWidgets(1));
+    expect(find.text('Sarah Sjöström'), findsNothing);
+
+    // Select Ian
+    await tester.tap(find.text('Ian Hawkins').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Generate Report'));
+    await tester.pumpAndSettle();
+
+    expect(reportedSwimmer, equals(swimmersSeed[0]));
+  });
 
   testWidgets('Clearing race data removes swimmer reactively', (WidgetTester tester) async {
     final swimmersNotifier = ValueNotifier<List<Swimmer>>(swimmersSeed);

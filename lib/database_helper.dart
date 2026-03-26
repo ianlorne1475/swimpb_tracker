@@ -255,16 +255,27 @@ class DatabaseHelper {
     return List.generate(maps.length, (i) => SwimEvent.fromMap(maps[i]));
   }
 
-  Future<List<SwimMeet>> getMeetsBySwimmer(int swimmerId) async {
+  Future<List<SwimMeet>> getMeetsBySwimmer(int swimmerId, {String? course}) async {
     Database db = await database;
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    String sql = '''
       SELECT m.*, e.club
       FROM meets m
       JOIN events e ON m.id = e.meetId
       WHERE e.swimmerId = ?
+    ''';
+    
+    List<dynamic> args = [swimmerId];
+    if (course != null && course != 'All') {
+      sql += ' AND m.course = ?';
+      args.add(course);
+    }
+    
+    sql += '''
       GROUP BY m.id
       ORDER BY m.date DESC
-    ''', [swimmerId]);
+    ''';
+    
+    final List<Map<String, dynamic>> maps = await db.rawQuery(sql, args);
     return List.generate(maps.length, (i) => SwimMeet.fromMap(maps[i]));
   }
 
@@ -466,6 +477,35 @@ class DatabaseHelper {
       where: 'distance = ? AND stroke = ? AND gender = ?',
       whereArgs: [distance, stroke, gender],
     );
+    return List.generate(maps.length, (i) => QualifyingTime.fromMap(maps[i]));
+  }
+
+  Future<List<QualifyingTime>> getQualifyingTimes({String? gender, String? standardName}) async {
+    Database db = await database;
+    String? where;
+    List<dynamic>? whereArgs;
+    
+    if (gender != null || standardName != null) {
+      final List<String> conditions = [];
+      whereArgs = [];
+      if (gender != null) {
+        conditions.add('gender = ?');
+        whereArgs.add(gender);
+      }
+      if (standardName != null) {
+        conditions.add('standardName = ?');
+        whereArgs.add(standardName);
+      }
+      where = conditions.join(' AND ');
+    }
+    
+    final List<Map<String, dynamic>> maps = await db.query(
+      'qualifying_times',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'gender ASC, stroke ASC, distance ASC, ageMin ASC',
+    );
+    
     return List.generate(maps.length, (i) => QualifyingTime.fromMap(maps[i]));
   }
 

@@ -159,7 +159,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           },
           onImportData: _handleImportData,
           onExportData: _handleExportData,
-          onReports: _showReportsDialog,
+          onReports: (swimmer) => _showReportsDialog(swimmer),
           onDeleteRaceData: _handleDeleteRaceData,
           onClearAllData: _handleClearAllData,
           onDeleteSwimmer: (swimmer) async {
@@ -863,8 +863,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     }
   }
 
-  void _showReportsDialog() async {
-    if (_selectedSwimmer == null) return;
+  void _showReportsDialog([Swimmer? specificSwimmer]) async {
+    final swimmer = specificSwimmer ?? _selectedSwimmer;
+    if (swimmer == null) return;
     
     showDialog(
       context: context,
@@ -879,15 +880,15 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               subtitle: const Text('National standards met (SNAG 2026)'),
               onTap: () async {
                 Navigator.pop(context);
-                final events = await _dbHelper.getEventsBySwimmer(_selectedSwimmer!.id!);
-                final age = _selectedSwimmer!.calculateAge();
-                final standards = await _dbHelper.getStandardsForSwimmer(age, _selectedSwimmer!.gender ?? 'Male');
+                final events = await _dbHelper.getEventsBySwimmer(swimmer.id!);
+                final age = swimmer.calculateAge();
+                final standards = await _dbHelper.getStandardsForSwimmer(age, swimmer.gender ?? 'Male');
                 
-                final pdfBytes = await ReportService().generateNationalQTReport(_selectedSwimmer!, events, standards);
+                final pdfBytes = await ReportService().generateNationalQTReport(swimmer, events, standards);
                 final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
                 await Printing.layoutPdf(
                   onLayout: (format) async => pdfBytes,
-                  name: '${_selectedSwimmer!.firstName}_${_selectedSwimmer!.surname}_${dateStr}_national_qt_report',
+                  name: '${swimmer.firstName}_${swimmer.surname}_${dateStr}_national_qt_report',
                 );
               },
             ),
@@ -897,14 +898,14 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               subtitle: const Text('Route to your personal targets'),
               onTap: () async {
                 Navigator.pop(context);
-                final goals = await _dbHelper.getGoalsBySwimmer(_selectedSwimmer!.id!);
-                final allEvents = await _dbHelper.getEventsBySwimmer(_selectedSwimmer!.id!);
+                final goals = await _dbHelper.getGoalsBySwimmer(swimmer.id!);
+                final allEvents = await _dbHelper.getEventsBySwimmer(swimmer.id!);
                 
-                final pdfBytes = await ReportService().generatePersonalGoalsReport(_selectedSwimmer!, goals, allEvents);
+                final pdfBytes = await ReportService().generatePersonalGoalsReport(swimmer, goals, allEvents);
                 final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
                 await Printing.layoutPdf(
                   onLayout: (format) async => pdfBytes,
-                  name: '${_selectedSwimmer!.firstName}_${_selectedSwimmer!.surname}_${dateStr}_personal_goals_report',
+                  name: '${swimmer.firstName}_${swimmer.surname}_${dateStr}_personal_goals_report',
                 );
               },
             ),
@@ -914,12 +915,12 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               subtitle: const Text('Full history of swimmer PBs.'),
               onTap: () async {
                 Navigator.pop(context);
-                final events = await _dbHelper.getEventsBySwimmer(_selectedSwimmer!.id!);
-                final pdfBytes = await ReportService().generatePersonalBestsReport(_selectedSwimmer!, events);
+                final events = await _dbHelper.getEventsBySwimmer(swimmer.id!);
+                final pdfBytes = await ReportService().generatePersonalBestsReport(swimmer, events);
                 final dateStr = DateFormat('ddMMyyyy').format(DateTime.now());
                 await Printing.layoutPdf(
                   onLayout: (format) async => pdfBytes,
-                  name: '${_selectedSwimmer!.firstName}_${_selectedSwimmer!.surname}_${dateStr}_personal_bests_report',
+                  name: '${swimmer.firstName}_${swimmer.surname}_${dateStr}_personal_bests_report',
                 );
               },
             ),

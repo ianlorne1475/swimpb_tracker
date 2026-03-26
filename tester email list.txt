@@ -41,6 +41,6 @@ Improved Data Sync
 - Improved visibility and interaction states for Light Mode users.
 - App performance improvements for a smoother, faster experience.
 
-please prepare release version, do any required testing, sign the app, backup to github and prepare debug APK, release APK and aab file
+please prepare release version, increment the version number, do any required testing, sign the app, backup to github and prepare debug APK, release APK and aab file.
 
 need to increment the version number in pubspec.yaml

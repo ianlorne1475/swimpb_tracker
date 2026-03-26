@@ -2,13 +2,25 @@
 
 This document tracks all changes, enhancements, and planned features for the SwimPB Tracker application.
     
+## [v1.1.4] - 2026-03-26
+### Added
+- **Qualification Times Viewer**: Implementation of a comprehensive standards viewer for SNAG 2026, accessible via the Settings menu. (2026-03-25 21:30)
+- **5-Way Stroke Filter**: Added a high-density, TabBar-style toggle (Fly, Back, Breast, Free, IM) to the viewer for fast navigation. (2026-03-25 21:40)
+- **Pixel-Perfect UI Refinement**: Switched to a Row-based layout to eliminate vertical whitespace and ensure a 1:1 visual match with the main screen's "detached pill" selectors. (2026-03-25 21:45)
+- **Theme Toggle Fix**: Resolved an initialization bug where the first toggle operation failed to visually change the theme due to inaccurate system state detection. (2026-03-25 22:05)
+- **Report Swimmer Selection**: Added a required swimmer selection step when generating reports from the Settings menu, ensuring the correct profile is targeted. (2026-03-25 22:15)
+- **Qualification Viewer UI**: Refined event group headers to match the card body (transparent background) while maintaining the requested white text style. (2026-03-26 07:25)
+- **App Help Section Update**: Synchronized in-app documentation with the latest v1.1.4 feature set, including SNAG 2026 standards and History tab filtering. (2026-03-26 08:30)
+- **Collapsible Help Sections**: Implemented a stateful, collapsible UI for the "Settings Menu", "Importing Data", "Technical Details", and "Additional Information" help sections to reduce clutter. (2026-03-26 09:05)
+- **Chart UI Refinement**: Reduced the thickness of progression, QT, and goal lines in the Chart tab by half for a more elegant, professional aesthetic. (2026-03-26 09:25)
+
 ## [v1.1.3] - 2026-03-25
 ### Fixed
 - **SNAG QTs (Male)**: Resolved a critical issue where male qualification times were not being seeded in the production app. (2026-03-25 06:55)
 - **Gender Export**: Fixed missing gender field in CSV and XLSX exports to ensure data integrity during import/export. (2026-03-25 07:12)
 - **Database Seeding**: Optimized the standards initialization to use a "seed once" guard, preventing duplicate entries and improving startup time. (2026-03-25 07:10)
 ### Added
-- Preparing for next development cycle. (2026-03-25 06:47)
+- **History Tab Filter**: Added a styled three-way toggle (All, LCM, SCM) to the History tab, allowing users to quickly filter swim meets by course type. (2026-03-25 19:46)
 
 ## [v1.1.0] - 2026-03-24
 ### Added (Pre-Release Polish)
@@ -44,7 +56,9 @@ This document tracks all changes, enhancements, and planned features for the Swi
 - [ ] **Sharing Feature**: Implement "Share with a Friend" in the Settings menu.
 - [ ] **Smart Notifications**: Goal-proximity alerts and automatic "Qualification Watch" notifications.
 
-### ☁️ Cloud & Connectivity
+### 💾 Data & Architecture
+- [ ] **Relational Export Format**: Redesign XLSX/CSV exports to separate Swimmer Profiles from Results/Goals for better data integrity and reduced file size.
+- [ ] **Split Times Support**: Enable recording of 25m (SCM) and 50m (LCM) splits for detailed performance analysis.
 - [ ] **Cloud Sync**: Firebase integration for secure multi-device backup.
 - [ ] **User Authentication**: Secure login via Google, Facebook, and Email.
 - [ ] **Wearable Sync**: Integration with Garmin and Apple Watch.
